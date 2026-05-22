@@ -1,0 +1,8 @@
+{
+  "name": "PDAM Digital",
+  "description": "A comprehensive digital port for water utility customers focusing on billing and payments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
