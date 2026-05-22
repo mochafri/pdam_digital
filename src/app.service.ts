@@ -125,22 +125,11 @@ export class AppService {
       throw new BadRequestException(`Tagihan untuk bulan ${data.monthString} ${data.yearString} sudah pernah dicatat.`);
     }
 
-    const biayaPemakaian = usage * 6000;
-    const adminFee = 20000;
-    const total = biayaPemakaian + adminFee;
+    // Hitung total: pemakaian * 6000 + 20000 (biaya pemeliharaan/admin)
+    const total = usage * 6000 + 20000;
 
-    // Calculate due date (20th of the next month)
-    const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    let nextMonthIdx = monthNames.indexOf(data.monthString) + 1;
-    let nextYear = parseInt(data.yearString);
-    if (nextMonthIdx > 11) {
-      nextMonthIdx = 0;
-      nextYear += 1;
-    }
-    const dueDate = `20 ${monthNames[nextMonthIdx].substring(0, 3)} ${nextYear}`;
+    // Jatuh tempo: tanggal 20 bulan tersebut
+    const dueDate = `20 ${data.monthString} ${data.yearString}`;
 
     const bill = await this.prisma.bill.create({
       data: {
