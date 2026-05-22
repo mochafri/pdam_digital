@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum BillStatus {
+  LUNAS
+  BELUM_BAYAR
+  MENUNGGU_VERIFIKASI
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  name       String
+  avatar     String?  @db.Text
+  role       Role     @default(CUSTOMER)
+  phone      String?
+  rt         String?
+  desa       String?
+  blok       String?
+  status     String   @default("Aktif") // "Aktif", "Tunggakan", "Pengecekan"
+  meterNo    String?  @unique // For customers, e.g. "MTR-8923-001"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  bills      Bill[]
+  payments   Payment[]
+
+  @@map("users")
+}
+
+model Bill {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthString String     // e.g., "Mei", "April"
+  yearString  String     // e.g., "2024"
+  dueDate     String     // e.g., "20 Jun 2024"
+  meterStart  Float
+  meterEnd    Float
+  usage       Float
+  total       Float
+  status      BillStatus @default(BELUM_BAYAR)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  payments    Payment[]
+
+  @@map("bills")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  billId        String
+  bill          Bill          @relation(fields: [billId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentMethod String        // e.g., "Virtual Account", "E-Wallet", "Transfer Bank"
+  proofOfImage  String?       @db.Text // proof of payment image url/base64
+  status        PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
