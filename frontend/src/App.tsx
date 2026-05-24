@@ -116,7 +116,7 @@ function CustomerLayout({
         />
       )}
       <Sidebar currentScreen={currentScreen} navigate={navigateToScreen} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
-      <TopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
+      <TopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
       <main className="lg:ml-[280px] pt-16 transition-all duration-300">
         <div className="p-4 md:p-8 overflow-x-hidden">
           <Routes>
@@ -201,7 +201,7 @@ function AdminLayout({ currentUser, setCurrentUser }: AdminLayoutProps) {
         />
       )}
       <AdminSidebar currentScreen={currentScreen} navigate={navigateToScreen} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
-      <AdminTopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
+      <AdminTopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
       <main className="lg:ml-[280px] pt-16 transition-all duration-300">
         <div className="p-4 md:p-8 overflow-x-hidden">
           <Routes>
