@@ -1,12 +1,16 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Icons } from '../../components/Icons';
 import { Screen, User, Bill } from '../../types';
+import { useLocation } from 'react-router-dom';
 
 interface InputMeterProps {
   navigate: (screen: Screen) => void;
 }
 
 export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
+  const location = useLocation();
+  const preselectedId = location.state?.selectedCustomerId;
+
   const [customers, setCustomers] = useState<User[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState<string>('Mei');
@@ -32,7 +36,12 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
         const data = await response.json();
         setCustomers(data);
         if (data.length > 0) {
-          setSelectedCustomerId(data[0].id);
+          // If a preselectedId is provided and exists in the list, choose it
+          if (preselectedId && data.some((c: any) => c.id === preselectedId)) {
+            setSelectedCustomerId(preselectedId);
+          } else {
+            setSelectedCustomerId(''); // Default to placeholder
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Koneksi ke server gagal.');
@@ -41,7 +50,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
       }
     };
     fetchCustomers();
-  }, []);
+  }, [preselectedId]);
 
   // Fetch standAwal (latest bill's standAkhir) when customer is selected
   useEffect(() => {
@@ -160,6 +169,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                       onChange={(e) => setSelectedCustomerId(e.target.value)}
                       className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
                     >
+                      <option value="">--- Pilih Pelanggan ---</option>
                       {customers.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.meterNo} - {c.name} ({c.desa}, RT {c.rt})
@@ -221,10 +231,11 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                       <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-surface-container-high text-on-surface-variant">Database Pre-filled</span>
                     </label>
                     <input 
-                      type="number" 
-                      value={standAwal}
+                      type="text" 
+                      value={selectedCustomerId ? standAwal : ''}
                       readOnly
-                      className="w-full px-4 py-3.5 bg-surface-container border border-outline-variant/50 border-dashed rounded-xl text-on-surface-variant font-code text-lg cursor-not-allowed" 
+                      placeholder="---"
+                      className="w-full px-4 py-3.5 bg-surface-container border border-outline-variant/50 border-dashed rounded-xl text-on-surface-variant font-code text-lg cursor-not-allowed placeholder:text-outline" 
                     />
                     <p className="mt-2 text-xs font-semibold text-outline">Stand akhir bulan sebelumnya terdaftar di database.</p>
                   </div>
@@ -234,9 +245,11 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                       type="number"
                       value={standAkhir}
                       onChange={(e) => setStandAkhir(e.target.value)}
-                      placeholder="Masukkan meteran saat ini"
+                      placeholder={selectedCustomerId ? "Masukkan meteran saat ini" : "Pilih pelanggan terlebih dahulu"}
                       required
-                      className="w-full px-4 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-code transition-shadow placeholder:text-sm placeholder:font-sans" 
+                      disabled={!selectedCustomerId}
+                      className={`w-full px-4 py-3.5 border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-code transition-shadow placeholder:text-sm placeholder:font-sans
+                        ${selectedCustomerId ? 'bg-surface-bright' : 'bg-surface-container-high cursor-not-allowed opacity-60'}`}
                     />
                   </div>
                 </div>

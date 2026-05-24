@@ -1,15 +1,20 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Icons } from '../../components/Icons';
 import { Screen, User } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 interface CustomerManagementProps {
   navigate: (screen: Screen) => void;
 }
 
 export const CustomerManagement: FC<CustomerManagementProps> = ({ navigate }) => {
+  const routerNavigate = useNavigate();
   const [customers, setCustomers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Search Filter State
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Filters
   const [selectedDesa, setSelectedDesa] = useState<string>('Semua');
@@ -113,7 +118,11 @@ export const CustomerManagement: FC<CustomerManagementProps> = ({ navigate }) =>
   const filteredCustomers = customers.filter((c) => {
     const matchDesa = selectedDesa === 'Semua' || c.desa === selectedDesa;
     const matchRT = selectedRT === 'Semua' || c.rt === selectedRT;
-    return matchDesa && matchRT;
+    const matchSearch = searchQuery.trim() === '' || 
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      c.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (c.meterNo && c.meterNo.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchDesa && matchRT && matchSearch;
   });
 
   const getStatusBadgeClass = (status: string) => {
@@ -188,6 +197,24 @@ export const CustomerManagement: FC<CustomerManagementProps> = ({ navigate }) =>
         {/* Table Header Actions */}
         <div className="p-4 border-b border-outline-variant flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/30">
           <div className="flex flex-wrap items-center gap-4">
+            <div className="relative">
+              <Icons.Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Cari nama, email, atau no. meter..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-8 py-2 bg-surface border border-outline-variant/80 rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all w-64 text-on-surface hover:border-primary font-medium"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface transition-colors cursor-pointer"
+                >
+                  <Icons.X size={14} />
+                </button>
+              )}
+            </div>
             <div className="flex p-1 bg-surface border border-outline-variant rounded-lg">
               <button 
                 onClick={() => setSelectedDesa('Semua')}
@@ -275,7 +302,7 @@ export const CustomerManagement: FC<CustomerManagementProps> = ({ navigate }) =>
                   <tr 
                     key={row.id} 
                     className="hover:bg-surface-container-low transition-colors group cursor-pointer" 
-                    onClick={() => navigate('admin-meter')}
+                    onClick={() => routerNavigate('/admin/meter', { state: { selectedCustomerId: row.id } })}
                   >
                     <td className="p-4 font-code text-on-surface-variant group-hover:text-primary transition-colors">{row.meterNo}</td>
                     <td className="p-4">
