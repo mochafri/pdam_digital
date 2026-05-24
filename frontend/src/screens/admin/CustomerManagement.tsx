@@ -142,7 +142,7 @@ export const CustomerManagement: FC<CustomerManagementProps> = ({ navigate }) =>
           className="bg-primary text-on-primary hover:bg-primary-fixed-variant text-sm font-bold px-6 py-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
         >
           <Icons.Plus size={20} />
-          Tambah Pelanggan Baru
+          Pelanggan Baru
         </button>
       </div>
 

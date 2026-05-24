@@ -68,7 +68,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-on-background">Dashboard Overview</h1>
+          <h1 className="text-3xl font-bold text-on-background">Ringkasan Dasbor</h1>
           <p className="text-base text-on-surface-variant mt-2 font-medium">Ringkasan operasional dan finansial hari ini.</p>
         </div>
         <div className="flex items-center gap-4 text-sm w-full sm:w-auto">
@@ -159,7 +159,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
                   <Icons.Receipt size={24} />
                 </div>
                 <span className="text-xs font-bold text-on-surface-variant bg-surface-container-high px-2.5 py-1 rounded-full">
-                  Outstanding
+                  Belum Bayar
                 </span>
               </div>
               <div>

@@ -27,7 +27,7 @@ export const AdminSidebar: FC<AdminSidebarProps> = ({ currentScreen, navigate, i
           </div>
           <div>
             <h1 className="text-xl font-bold text-primary tracking-tight">PDAM Digital</h1>
-            <p className="text-xs font-medium text-on-surface-variant">Admin Portal</p>
+            <p className="text-xs font-medium text-on-surface-variant">Portal Admin</p>
           </div>
         </div>
         <button onClick={onClose} className="p-2 -mr-2 rounded-full text-on-surface-variant hover:bg-surface-container-low lg:hidden">
@@ -42,30 +42,30 @@ export const AdminSidebar: FC<AdminSidebarProps> = ({ currentScreen, navigate, i
         </button>
         <button onClick={() => navigate('admin-customers')} className={getNavLinkClass('admin-customers')}>
           <Icons.Users size={20} />
-          <span className="text-sm">Customers</span>
+          <span className="text-sm">Pelanggan</span>
         </button>
         <button onClick={() => navigate('admin-meter')} className={getNavLinkClass('admin-meter')}>
           <Icons.Gauge size={20} />
-          <span className="text-sm">Meter Readings</span>
+          <span className="text-sm">Catat Meteran</span>
         </button>
         <button onClick={() => navigate('admin-bills')} className={getNavLinkClass('admin-bills')}>
           <Icons.Receipt size={20} />
-          <span className="text-sm">Bills</span>
+          <span className="text-sm">Tagihan</span>
         </button>
         <button onClick={() => navigate('admin-payments')} className={getNavLinkClass('admin-payments')}>
           <Icons.CreditCard size={20} />
-          <span className="text-sm">Payments</span>
+          <span className="text-sm">Verifikasi Pembayaran</span>
         </button>
       </div>
 
       <div className="mt-auto px-4 flex flex-col gap-1 border-t border-outline-variant pt-4">
         <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-on-surface-variant hover:bg-surface-container-low transition-colors duration-150 rounded-lg">
           <Icons.Settings size={20} />
-          <span className="text-sm">Settings</span>
+          <span className="text-sm">Pengaturan</span>
         </button>
         <button onClick={() => navigate('login')} className="flex items-center gap-3 px-4 py-3 w-full text-left text-error hover:bg-error-container hover:text-on-error-container transition-colors duration-150 rounded-lg">
           <Icons.LogOut size={20} />
-          <span className="text-sm">Logout</span>
+          <span className="text-sm">Keluar</span>
         </button>
       </div>
     </nav>

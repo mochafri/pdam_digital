@@ -32,7 +32,7 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
         <nav className="flex items-center gap-2 text-on-surface-variant text-xs font-semibold mb-3">
           <button onClick={() => navigate('dashboard')} className="hover:text-primary transition-colors cursor-pointer">Dashboard</button>
           <Icons.ChevronRight size={14} className="opacity-50" />
-          <button onClick={() => navigate('bills')} className="hover:text-primary transition-colors cursor-pointer">My Bills</button>
+          <button onClick={() => navigate('bills')} className="hover:text-primary transition-colors cursor-pointer">Tagihan Saya</button>
           <Icons.ChevronRight size={14} className="opacity-50" />
           <span className="text-primary">Pembayaran</span>
         </nav>
