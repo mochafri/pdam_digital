@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react';
+import React, { FC, useState, useEffect, useRef } from 'react';
 import { Icons } from '../../components/Icons';
 import { Screen, User, Bill } from '../../types';
 import { useLocation } from 'react-router-dom';
@@ -13,6 +13,13 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
 
   const [customers, setCustomers] = useState<User[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  
+  // Filters State
+  const [selectedDesa, setSelectedDesa] = useState<string>('Semua');
+  const [selectedRT, setSelectedRT] = useState<string>('Semua');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('');
+  const [isOpenCustomerDropdown, setIsOpenCustomerDropdown] = useState<boolean>(false);
+
   const [selectedMonth, setSelectedMonth] = useState<string>('Mei');
   const [selectedYear, setSelectedYear] = useState<string>('2024');
   const [standAwal, setStandAwal] = useState<number>(0);
@@ -22,6 +29,20 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Dropdown reference
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close customer dropdown
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpenCustomerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Fetch all customers on mount
   useEffect(() => {
@@ -35,13 +56,19 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
         }
         const data = await response.json();
         setCustomers(data);
+        
         if (data.length > 0) {
           // If a preselectedId is provided and exists in the list, choose it
-          if (preselectedId && data.some((c: any) => c.id === preselectedId)) {
-            setSelectedCustomerId(preselectedId);
-          } else {
-            setSelectedCustomerId(''); // Default to placeholder
+          if (preselectedId) {
+            const preCust = data.find((c: any) => c.id === preselectedId);
+            if (preCust) {
+              setSelectedDesa(preCust.desa || 'Semua');
+              setSelectedRT(preCust.rt || 'Semua');
+              setSelectedCustomerId(preselectedId);
+              return;
+            }
           }
+          setSelectedCustomerId(''); // Default to placeholder
         }
       } catch (err: any) {
         setError(err.message || 'Koneksi ke server gagal.');
@@ -51,6 +78,19 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
     };
     fetchCustomers();
   }, [preselectedId]);
+
+  // If filters change, check if selected customer still matches. If not, reset selection
+  useEffect(() => {
+    if (!selectedCustomerId) return;
+    const currentCustomer = customers.find(c => c.id === selectedCustomerId);
+    if (currentCustomer) {
+      const matchDesa = selectedDesa === 'Semua' || currentCustomer.desa === selectedDesa;
+      const matchRT = selectedRT === 'Semua' || currentCustomer.rt === selectedRT;
+      if (!matchDesa || !matchRT) {
+        setSelectedCustomerId('');
+      }
+    }
+  }, [selectedDesa, selectedRT, selectedCustomerId, customers]);
 
   // Fetch standAwal (latest bill's standAkhir) when customer is selected
   useEffect(() => {
@@ -64,21 +104,29 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
         }
         const bills: Bill[] = await response.json();
         if (bills.length > 0) {
-          // Find the latest bill (based on meterEnd/createdAt)
-          const latestBill = bills[0]; // Already ordered by desc in backend
+          const latestBill = bills[0]; // Ordered by desc in backend
           setStandAwal(latestBill.meterEnd);
         } else {
-          // New customer, no previous bills
           setStandAwal(0);
         }
       } catch (err) {
         console.error('Error fetching latest bill:', err);
-        setStandAwal(0); // Default to 0 on failure or new customer
+        setStandAwal(0);
       }
     };
 
     fetchLatestBill();
   }, [selectedCustomerId]);
+
+  // Calculate filtered list for searchable dropdown
+  const filteredCustomers = customers.filter(c => {
+    const matchDesa = selectedDesa === 'Semua' || c.desa === selectedDesa;
+    const matchRT = selectedRT === 'Semua' || c.rt === selectedRT;
+    const matchSearch = customerSearchQuery.trim() === '' ||
+      c.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
+      (c.meterNo && c.meterNo.toLowerCase().includes(customerSearchQuery.toLowerCase()));
+    return matchDesa && matchRT && matchSearch;
+  });
 
   const pemakaian = standAkhir ? parseInt(standAkhir) - standAwal : 0;
   const biayaPemakaian = pemakaian > 0 ? pemakaian * 6000 : 0;
@@ -121,7 +169,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
 
       alert('Data meteran bulanan berhasil disimpan dan tagihan diterbitkan!');
       setStandAkhir('');
-      navigate('admin-customers');
+      navigate('admin-bills');
     } catch (err: any) {
       setSaveError(err.message || 'Koneksi ke server gagal.');
     } finally {
@@ -151,7 +199,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
           {/* Input Form Section */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/60 p-8">
-              <form className="space-y-8" onSubmit={handleSaveMeter}>
+              <form className="space-y-6" onSubmit={handleSaveMeter}>
                 
                 {saveError && (
                   <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-lg">
@@ -159,25 +207,143 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                   </div>
                 )}
 
-                {/* Customer Select */}
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2">Pilih Pelanggan</label>
-                  <div className="relative">
-                    <Icons.UserSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-                    <select 
-                      value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
-                      className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
-                    >
-                      <option value="">--- Pilih Pelanggan ---</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.meterNo} - {c.name} ({c.desa}, RT {c.rt})
-                        </option>
-                      ))}
-                    </select>
-                    <Icons.ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                {/* Filters: Desa & RT */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Filter Desa</label>
+                    <div className="relative">
+                      <Icons.MapPin size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                      <select 
+                        value={selectedDesa}
+                        onChange={(e) => setSelectedDesa(e.target.value)}
+                        className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
+                      >
+                        <option value="Semua">Semua Desa</option>
+                        <option value="Cinunuk">Cinunuk</option>
+                        <option value="Cimekar">Cimekar</option>
+                      </select>
+                      <Icons.ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                    </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-2">Filter RT</label>
+                    <div className="relative">
+                      <Icons.Hash size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                      <select 
+                        value={selectedRT}
+                        onChange={(e) => setSelectedRT(e.target.value)}
+                        className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
+                      >
+                        <option value="Semua">Semua RT</option>
+                        <option value="01">RT 01</option>
+                        <option value="02">RT 02</option>
+                        <option value="03">RT 03</option>
+                        <option value="04">RT 04</option>
+                        <option value="05">RT 05</option>
+                      </select>
+                      <Icons.ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer Select (Searchable Select Component) */}
+                <div ref={dropdownRef} className="relative">
+                  <label className="block text-sm font-bold text-on-surface mb-2">Pilih Pelanggan</label>
+                  <div 
+                    onClick={() => setIsOpenCustomerDropdown(!isOpenCustomerDropdown)}
+                    className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none ring-offset-background text-sm font-semibold flex items-center justify-between cursor-pointer shadow-sm relative min-h-[48px]"
+                  >
+                    <Icons.UserSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                    
+                    <span className={selectedCustomerId ? 'text-on-surface font-semibold' : 'text-outline-variant font-medium'}>
+                      {selectedCustomerId 
+                        ? (() => {
+                            const c = customers.find(x => x.id === selectedCustomerId);
+                            if (!c) return '--- Pilih Pelanggan ---';
+                            const showDesa = selectedDesa === 'Semua';
+                            const showRT = selectedRT === 'Semua';
+                            if (showDesa && showRT) {
+                              return `${c.meterNo} - ${c.name} (${c.desa}, RT ${c.rt})`;
+                            } else if (showDesa) {
+                              return `${c.meterNo} - ${c.name} (${c.desa})`;
+                            } else if (showRT) {
+                              return `${c.meterNo} - ${c.name} (RT ${c.rt})`;
+                            } else {
+                              return `${c.meterNo} - ${c.name}`;
+                            }
+                          })()
+                        : '--- Pilih Pelanggan ---'}
+                    </span>
+
+                    <Icons.ChevronDown size={20} className={`text-outline transition-transform duration-200 ${isOpenCustomerDropdown ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  {/* Dropdown Panel */}
+                  {isOpenCustomerDropdown && (
+                    <div className="absolute top-[80px] left-0 w-full bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-2 max-h-80 flex flex-col">
+                      <div className="relative mb-2 shrink-0">
+                        <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                        <input
+                          type="text"
+                          placeholder="Cari nama atau no. meter..."
+                          value={customerSearchQuery}
+                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 border border-outline-variant rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium bg-surface-bright"
+                        />
+                      </div>
+                      
+                      <div className="max-h-60 overflow-y-auto divide-y divide-outline-variant/10 custom-scrollbar">
+                        {filteredCustomers.length > 0 ? (
+                          filteredCustomers.map((c) => (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                setSelectedCustomerId(c.id);
+                                setIsOpenCustomerDropdown(false);
+                                setCustomerSearchQuery('');
+                              }}
+                              className={`p-3 text-xs hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center rounded-lg font-medium group ${c.id === selectedCustomerId ? 'bg-primary/5 text-primary' : 'text-on-surface'}`}
+                            >
+                              {(() => {
+                                const showDesa = selectedDesa === 'Semua';
+                                const showRT = selectedRT === 'Semua';
+                                if (!showDesa && !showRT) {
+                                  return (
+                                    <div className="min-w-0">
+                                      <p className="font-bold truncate group-hover:text-primary transition-colors">{c.meterNo} - {c.name}</p>
+                                    </div>
+                                  );
+                                }
+                                let locationText = '';
+                                if (showDesa && showRT) {
+                                  locationText = `${c.desa}, RT ${c.rt}`;
+                                } else if (showDesa) {
+                                  locationText = c.desa;
+                                } else {
+                                  locationText = `RT ${c.rt}`;
+                                }
+                                return (
+                                  <>
+                                    <div className="min-w-0">
+                                      <p className="font-bold truncate group-hover:text-primary transition-colors">{c.meterNo} - {c.name}</p>
+                                      <p className="text-[10px] text-on-surface-variant mt-0.5">{locationText} • {c.email}</p>
+                                    </div>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${c.status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      {c.status}
+                                    </span>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-xs text-outline font-medium">
+                            Tidak ada pelanggan cocok dengan kriteria filter.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Date Selectors */}
@@ -287,24 +453,24 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-on-surface">Biaya Pemakaian</span>
-                    <span className="font-bold text-on-surface">Rp {biayaPemakaian > 0 ? biayaPemakaian.toLocaleString('id-ID') : '--'}</span>
+                    <span className="font-bold text-on-surface whitespace-nowrap">Rp&nbsp;{biayaPemakaian > 0 ? biayaPemakaian.toLocaleString('id-ID') : '--'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-semibold text-outline pl-4 border-l-2 border-outline-variant/50">
                     <span>Tarif per m³</span>
-                    <span>Rp 6.000</span>
+                    <span className="whitespace-nowrap">Rp&nbsp;6.000</span>
                   </div>
                   <div className="flex justify-between items-center text-sm pt-2">
                     <span className="font-bold text-on-surface">Biaya Administrasi</span>
-                    <span className="font-bold text-on-surface">Rp {adminFee.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-on-surface whitespace-nowrap">Rp&nbsp;{adminFee.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
 
                 {/* Total */}
                 <div className="pt-5 border-t border-outline-variant/50">
-                  <div className="flex justify-between items-end">
-                    <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Total Estimasi</span>
-                    <span className="text-3xl font-bold tracking-tight text-on-surface">
-                      Rp {standAkhir && pemakaian > 0 ? total.toLocaleString('id-ID') : '--'}
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Total</span>
+                    <span className="text-3xl font-bold tracking-tight text-primary whitespace-nowrap">
+                      Rp&nbsp;{standAkhir && pemakaian > 0 ? total.toLocaleString('id-ID') : '--'}
                     </span>
                   </div>
                 </div>
