@@ -67,6 +67,14 @@ export class AppController {
     return this.appService.createBill(body);
   }
 
+  @Patch('bills/:id')
+  async updateBill(
+    @Param('id') id: string,
+    @Body('meterEnd') meterEnd: number,
+  ) {
+    return this.appService.updateBill(id, meterEnd);
+  }
+
   // --- PAYMENTS ---
   @Get('payments')
   async getPayments(@Query('userId') userId?: string) {

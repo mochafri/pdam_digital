@@ -2,6 +2,12 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from './prisma/prisma.service';
 import { Role, BillStatus, PaymentStatus } from '@prisma/client';
 
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+
 @Injectable()
 export class AppService {
   constructor(private readonly prisma: PrismaService) {}
@@ -152,6 +158,72 @@ export class AppService {
     });
 
     return bill;
+  }
+
+  async updateBill(id: string, newMeterEnd: number) {
+    const bill = await this.prisma.bill.findUnique({
+      where: { id },
+    });
+    if (!bill) {
+      throw new NotFoundException('Tagihan tidak ditemukan.');
+    }
+
+    if (newMeterEnd < bill.meterStart) {
+      throw new BadRequestException('Stand akhir tidak boleh lebih kecil dari stand awal.');
+    }
+
+    // Get all bills for this user to find the next chronological bill
+    const allBills = await this.prisma.bill.findMany({
+      where: { userId: bill.userId },
+    });
+
+    const getMonthValue = (b: { monthString: string; yearString: string }) => {
+      const idx = MONTHS.indexOf(b.monthString);
+      return parseInt(b.yearString, 10) * 12 + (idx !== -1 ? idx : 0);
+    };
+
+    // Sort bills ascending
+    const sortedBills = [...allBills].sort((a, b) => getMonthValue(a) - getMonthValue(b));
+    const currentIndex = sortedBills.findIndex((b) => b.id === bill.id);
+    const nextBill = currentIndex !== -1 && currentIndex < sortedBills.length - 1 ? sortedBills[currentIndex + 1] : null;
+
+    if (nextBill) {
+      if (newMeterEnd > nextBill.meterEnd) {
+        throw new BadRequestException(
+          `Stand akhir tidak boleh melebihi stand akhir bulan berikutnya (${nextBill.monthString} ${nextBill.yearString}: ${nextBill.meterEnd}).`
+        );
+      }
+    }
+
+    // Update current bill
+    const usage = newMeterEnd - bill.meterStart;
+    const total = usage * 6000 + 20000;
+
+    const updatedBill = await this.prisma.bill.update({
+      where: { id },
+      data: {
+        meterEnd: newMeterEnd,
+        usage,
+        total,
+      },
+    });
+
+    // Update next bill if exists
+    if (nextBill) {
+      const nextUsage = nextBill.meterEnd - newMeterEnd;
+      const nextTotal = nextUsage * 6000 + 20000;
+
+      await this.prisma.bill.update({
+        where: { id: nextBill.id },
+        data: {
+          meterStart: newMeterEnd,
+          usage: nextUsage,
+          total: nextTotal,
+        },
+      });
+    }
+
+    return updatedBill;
   }
 
   // --- PAYMENTS ---

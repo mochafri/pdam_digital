@@ -3,6 +3,28 @@ import { Icons } from '../../components/Icons';
 import { Screen, User, Bill } from '../../types';
 import { useLocation } from 'react-router-dom';
 
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+const getMonthIndex = (month: string) => MONTHS.indexOf(month);
+
+const getMonthValue = (month: string, year: string) => {
+  const m = getMonthIndex(month);
+  const y = parseInt(year, 10);
+  return y * 12 + (m !== -1 ? m : 0);
+};
+
+const fromMonthValue = (val: number) => {
+  const year = Math.floor(val / 12);
+  const monthIdx = val % 12;
+  return {
+    monthString: MONTHS[monthIdx],
+    yearString: String(year)
+  };
+};
+
 interface InputMeterProps {
   navigate: (screen: Screen) => void;
 }
@@ -13,6 +35,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
 
   const [customers, setCustomers] = useState<User[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [customerBills, setCustomerBills] = useState<Bill[]>([]);
   
   // Filters State
   const [selectedDesa, setSelectedDesa] = useState<string>('Semua');
@@ -92,31 +115,117 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
     }
   }, [selectedDesa, selectedRT, selectedCustomerId, customers]);
 
-  // Fetch standAwal (latest bill's standAkhir) when customer is selected
+  // Fetch customer's bills and auto-select next logical month when customer is selected
   useEffect(() => {
-    if (!selectedCustomerId) return;
+    if (!selectedCustomerId) {
+      setCustomerBills([]);
+      return;
+    }
     
-    const fetchLatestBill = async () => {
+    const fetchCustomerBills = async () => {
       try {
         const response = await fetch(`http://localhost:5000/api/bills?userId=${selectedCustomerId}`);
         if (!response.ok) {
           throw new Error('Gagal mengambil riwayat tagihan.');
         }
         const bills: Bill[] = await response.json();
+        setCustomerBills(bills);
+        
         if (bills.length > 0) {
-          const latestBill = bills[0]; // Ordered by desc in backend
-          setStandAwal(latestBill.meterEnd);
+          // find latest bill chronologically
+          const sortedBills = [...bills].sort((a, b) => {
+            return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
+          });
+          const latestBill = sortedBills[sortedBills.length - 1];
+          const nextMonthVal = getMonthValue(latestBill.monthString, latestBill.yearString) + 1;
+          const nextPeriod = fromMonthValue(nextMonthVal);
+          setSelectedMonth(nextPeriod.monthString);
+          setSelectedYear(nextPeriod.yearString);
         } else {
-          setStandAwal(0);
+          // default to current month and year
+          const now = new Date();
+          setSelectedMonth(MONTHS[now.getMonth()]);
+          setSelectedYear(String(now.getFullYear()));
         }
       } catch (err) {
-        console.error('Error fetching latest bill:', err);
-        setStandAwal(0);
+        console.error('Error fetching customer bills:', err);
+        setCustomerBills([]);
       }
     };
 
-    fetchLatestBill();
+    fetchCustomerBills();
   }, [selectedCustomerId]);
+
+  // Synchronize standAwal and standAkhir when period selection or bills change
+  useEffect(() => {
+    if (!selectedCustomerId) {
+      setStandAwal(0);
+      setStandAkhir('');
+      return;
+    }
+
+    const existingBill = customerBills.find(
+      (b) => b.monthString === selectedMonth && b.yearString === selectedYear
+    );
+
+    if (existingBill) {
+      setStandAwal(existingBill.meterStart);
+      setStandAkhir(String(existingBill.meterEnd));
+    } else {
+      if (customerBills.length > 0) {
+        const sortedBills = [...customerBills].sort(
+          (a, b) => getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString)
+        );
+        const latestBill = sortedBills[sortedBills.length - 1];
+        setStandAwal(latestBill.meterEnd);
+      } else {
+        setStandAwal(0);
+      }
+      setStandAkhir('');
+    }
+  }, [selectedCustomerId, selectedMonth, selectedYear, customerBills]);
+
+  const isMonthEnabled = (m: string, y: string) => {
+    if (!selectedCustomerId || customerBills.length === 0) return true;
+    
+    const sortedBills = [...customerBills].sort((a, b) => {
+      return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
+    });
+    const latestBill = sortedBills[sortedBills.length - 1];
+    const latestVal = getMonthValue(latestBill.monthString, latestBill.yearString);
+    const nextLogicalVal = latestVal + 1;
+    const selectedVal = getMonthValue(m, y);
+
+    if (selectedVal === nextLogicalVal) return true;
+    
+    const billExists = customerBills.some(b => b.monthString === m && b.yearString === y);
+    return billExists;
+  };
+
+  const isYearEnabled = (y: string) => {
+    if (!selectedCustomerId || customerBills.length === 0) return true;
+    
+    const sortedBills = [...customerBills].sort((a, b) => {
+      return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
+    });
+    const latestBill = sortedBills[sortedBills.length - 1];
+    const latestVal = getMonthValue(latestBill.monthString, latestBill.yearString);
+    const nextLogicalVal = latestVal + 1;
+
+    const nextPeriod = fromMonthValue(nextLogicalVal);
+    if (y === nextPeriod.yearString) return true;
+    
+    const hasBillInYear = customerBills.some(b => b.yearString === y);
+    return hasBillInYear;
+  };
+
+  const handleYearChange = (yearVal: string) => {
+    setSelectedYear(yearVal);
+    const enabledMonth = MONTHS.find(m => isMonthEnabled(m, yearVal));
+    if (enabledMonth) {
+      setSelectedMonth(enabledMonth);
+    }
+  };
 
   // Calculate filtered list for searchable dropdown
   const filteredCustomers = customers.filter(c => {
@@ -127,6 +236,34 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
       (c.meterNo && c.meterNo.toLowerCase().includes(customerSearchQuery.toLowerCase()));
     return matchDesa && matchRT && matchSearch;
   });
+
+  const existingBill = selectedCustomerId
+    ? customerBills.find(b => b.monthString === selectedMonth && b.yearString === selectedYear)
+    : null;
+
+  const mode = existingBill ? 'UPDATE' : 'CREATE';
+
+  let isValidPeriod = true;
+  let validationMessage = '';
+
+  if (selectedCustomerId && mode === 'CREATE' && customerBills.length > 0) {
+    const sortedBills = [...customerBills].sort((a, b) => {
+      return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
+    });
+    const latestBill = sortedBills[sortedBills.length - 1];
+    const latestVal = getMonthValue(latestBill.monthString, latestBill.yearString);
+    const selectedVal = getMonthValue(selectedMonth, selectedYear);
+    const nextLogicalVal = latestVal + 1;
+
+    if (selectedVal < nextLogicalVal) {
+      isValidPeriod = false;
+      validationMessage = `Tidak bisa melakukan backdate. Bulan ini mendahului tagihan terakhir (${latestBill.monthString} ${latestBill.yearString}) dan tidak memiliki data tagihan.`;
+    } else if (selectedVal > nextLogicalVal) {
+      isValidPeriod = false;
+      const nextPeriod = fromMonthValue(nextLogicalVal);
+      validationMessage = `Silakan masukkan tagihan untuk bulan ${nextPeriod.monthString} ${nextPeriod.yearString} terlebih dahulu.`;
+    }
+  }
 
   const pemakaian = standAkhir ? parseInt(standAkhir) - standAwal : 0;
   const biayaPemakaian = pemakaian > 0 ? pemakaian * 6000 : 0;
@@ -139,6 +276,10 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
       alert('Silakan pilih pelanggan terlebih dahulu.');
       return;
     }
+    if (!isValidPeriod) {
+      alert(validationMessage);
+      return;
+    }
     const endVal = parseInt(standAkhir);
     if (isNaN(endVal) || endVal <= standAwal) {
       alert('Stand akhir harus lebih besar dari stand awal.');
@@ -148,26 +289,44 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
     setSaving(true);
     setSaveError(null);
     try {
-      const response = await fetch('http://localhost:5000/api/bills', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: selectedCustomerId,
-          monthString: selectedMonth,
-          yearString: selectedYear,
-          meterStart: standAwal,
-          meterEnd: endVal,
-        }),
-      });
+      let response;
+      if (mode === 'UPDATE') {
+        if (!existingBill) return;
+        response = await fetch(`http://localhost:5000/api/bills/${existingBill.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            meterEnd: endVal,
+          }),
+        });
+      } else {
+        response = await fetch('http://localhost:5000/api/bills', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedCustomerId,
+            monthString: selectedMonth,
+            yearString: selectedYear,
+            meterStart: standAwal,
+            meterEnd: endVal,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.message || 'Gagal menyimpan data meteran.');
       }
 
-      alert('Data meteran bulanan berhasil disimpan dan tagihan diterbitkan!');
+      if (mode === 'UPDATE') {
+        alert('Data meteran bulanan berhasil diperbarui!');
+      } else {
+        alert('Data meteran bulanan berhasil disimpan dan tagihan diterbitkan!');
+      }
       setStandAkhir('');
       navigate('admin-bills');
     } catch (err: any) {
@@ -204,6 +363,26 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                 {saveError && (
                   <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-lg">
                     {saveError}
+                  </div>
+                )}
+
+                {!isValidPeriod && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium rounded-xl flex items-start gap-3">
+                    <Icons.AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="font-bold text-amber-900">Periode Tidak Valid</p>
+                      <p className="text-xs text-amber-700 mt-1">{validationMessage}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedCustomerId && mode === 'UPDATE' && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 text-blue-800 text-sm font-medium rounded-xl flex items-start gap-3">
+                    <Icons.Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="font-bold text-blue-900">Mode Pembaruan (Update)</p>
+                      <p className="text-xs text-blue-700 mt-1">Tagihan untuk bulan ini sudah ada. Anda sedang mengubah stand akhir meteran. Perubahan ini akan memperbarui tagihan saat ini dan memperbarui stand awal bulan berikutnya secara otomatis di database.</p>
+                    </div>
                   </div>
                 )}
 
@@ -357,18 +536,15 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                         onChange={(e) => setSelectedMonth(e.target.value)}
                         className="w-full pl-10 pr-10 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
                       >
-                        <option value="Januari">Januari</option>
-                        <option value="Februari">Februari</option>
-                        <option value="Maret">Maret</option>
-                        <option value="April">April</option>
-                        <option value="Mei">Mei</option>
-                        <option value="Juni">Juni</option>
-                        <option value="Juli">Juli</option>
-                        <option value="Agustus">Agustus</option>
-                        <option value="September">September</option>
-                        <option value="Oktober">Oktober</option>
-                        <option value="November">November</option>
-                        <option value="Desember">Desember</option>
+                        {MONTHS.map(m => (
+                          <option 
+                            key={m} 
+                            value={m} 
+                            disabled={!isMonthEnabled(m, selectedYear)}
+                          >
+                            {m}
+                          </option>
+                        ))}
                       </select>
                       <Icons.ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
                     </div>
@@ -378,11 +554,21 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                     <div className="relative">
                       <select 
                         value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
+                        onChange={(e) => handleYearChange(e.target.value)}
                         className="w-full px-4 py-3.5 bg-surface-bright border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold appearance-none cursor-pointer"
                       >
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
+                        {Array.from({ length: 5 }, (_, i) => {
+                          const yearVal = String(new Date().getFullYear() - 3 + i);
+                          return (
+                            <option 
+                              key={yearVal} 
+                              value={yearVal}
+                              disabled={!isYearEnabled(yearVal)}
+                            >
+                              {yearVal}
+                            </option>
+                          );
+                        })}
                       </select>
                       <Icons.ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
                     </div>
@@ -411,11 +597,17 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                       type="number"
                       value={standAkhir}
                       onChange={(e) => setStandAkhir(e.target.value)}
-                      placeholder={selectedCustomerId ? "Masukkan meteran saat ini" : "Pilih pelanggan terlebih dahulu"}
+                      placeholder={
+                        !selectedCustomerId 
+                          ? "Pilih pelanggan terlebih dahulu" 
+                          : !isValidPeriod 
+                            ? "Periode tidak valid" 
+                            : "Masukkan meteran saat ini"
+                      }
                       required
-                      disabled={!selectedCustomerId}
+                      disabled={!selectedCustomerId || !isValidPeriod}
                       className={`w-full px-4 py-3.5 border border-outline-variant/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-lg font-code transition-shadow placeholder:text-sm placeholder:font-sans
-                        ${selectedCustomerId ? 'bg-surface-bright' : 'bg-surface-container-high cursor-not-allowed opacity-60'}`}
+                        ${selectedCustomerId && isValidPeriod ? 'bg-surface-bright' : 'bg-surface-container-high cursor-not-allowed opacity-60'}`}
                     />
                   </div>
                 </div>
@@ -478,13 +670,13 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
                 {/* Action Buttons */}
                 <div className="pt-8 space-y-3">
                   <button 
-                    disabled={saving || !standAkhir || pemakaian <= 0}
+                    disabled={saving || !standAkhir || pemakaian <= 0 || !isValidPeriod}
                     onClick={handleSaveMeter}
                     className={`w-full py-4 px-4 font-bold text-base rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm cursor-pointer
-                      ${standAkhir && pemakaian > 0 && !saving ? 'bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container active:scale-[0.98]' : 'bg-surface-container text-outline cursor-not-allowed'}`}
+                      ${standAkhir && pemakaian > 0 && !saving && isValidPeriod ? 'bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container active:scale-[0.98]' : 'bg-surface-container text-outline cursor-not-allowed'}`}
                   >
                     <Icons.Save size={20} />
-                    {saving ? 'Menyimpan...' : 'Simpan & Rilis Tagihan'}
+                    {saving ? 'Menyimpan...' : mode === 'UPDATE' ? 'Update & Rilis Tagihan' : 'Simpan & Rilis Tagihan'}
                   </button>
                   <button 
                     onClick={() => setStandAkhir('')}
