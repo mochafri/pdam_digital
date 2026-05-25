@@ -134,7 +134,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
               </div>
             </div>
 
-            {/* Card 3: Menunggu Verifikasi */}
+            {/* Card 3: Pembayaran Pending */}
             <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-outline-variant transition-all hover:shadow-md hover:-translate-y-1 group cursor-pointer" onClick={() => navigate('admin-payments')}>
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 bg-tertiary-container/30 rounded-lg text-tertiary group-hover:bg-tertiary-container/50 transition-colors">
@@ -142,12 +142,12 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
                 </div>
                 {stats && stats.pendingPaymentsCount > 0 && (
                   <span className="text-xs font-bold text-on-tertiary-container bg-tertiary-container px-2.5 py-1 rounded-full animate-bounce">
-                    Antrean
+                    Pending
                   </span>
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-on-surface-variant mb-1">Menunggu Verifikasi</p>
+                <p className="text-sm font-semibold text-on-surface-variant mb-1">Pembayaran Pending</p>
                 <p className="text-3xl font-bold text-on-surface tracking-tight">{stats?.pendingPaymentsCount}</p>
               </div>
             </div>

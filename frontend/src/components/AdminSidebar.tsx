@@ -54,7 +54,7 @@ export const AdminSidebar: FC<AdminSidebarProps> = ({ currentScreen, navigate, i
         </button>
         <button onClick={() => navigate('admin-payments')} className={getNavLinkClass('admin-payments')}>
           <Icons.CreditCard size={20} />
-          <span className="text-sm">Verifikasi Pembayaran</span>
+          <span className="text-sm">Riwayat Pembayaran</span>
         </button>
       </div>
 

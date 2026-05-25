@@ -41,11 +41,11 @@ export const AdminTopBar: FC<AdminTopBarProps> = ({ user, onMenuClick, onLogout 
   const [notifications, setNotifications] = useState([
     {
       id: '1',
-      title: 'Verifikasi Pembayaran Baru',
-      desc: 'Budi Santoso telah mengunggah bukti transfer untuk tagihan Maret 2024.',
+      title: 'Pemberitahuan Pembayaran',
+      desc: 'Budi Santoso telah sukses melakukan pembayaran untuk tagihan Maret 2024 via Midtrans.',
       time: '15 menit yang lalu',
       unread: true,
-      type: 'warning',
+      type: 'success',
       action: () => navigate('/admin/payments')
     },
     {
@@ -291,7 +291,7 @@ export const AdminTopBar: FC<AdminTopBarProps> = ({ user, onMenuClick, onLogout 
               <div>
                 <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider mb-2">Panduan Admin</h4>
                 <p className="text-[10.5px] text-on-surface-variant font-medium leading-relaxed">
-                  Gunakan menu **Input Meteran** untuk mencatat meteran bulanan baru, dan **Verifikasi Pembayaran** untuk memeriksa setoran pelanggan secara real-time.
+                  Gunakan menu **Input Meteran** untuk mencatat meteran bulanan baru, dan **Riwayat Pembayaran** untuk memantau setoran pelanggan secara real-time.
                 </p>
               </div>
 
