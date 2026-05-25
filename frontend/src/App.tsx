@@ -136,6 +136,7 @@ function CustomerLayout({
             } />
             <Route path="payment/method" element={
               <PaymentMethod 
+                user={currentUser}
                 navigate={navigateToScreen} 
                 selectedBill={selectedBill} 
                 selectedMethod={selectedPaymentMethod}

@@ -95,6 +95,23 @@ export class AppController {
     return this.appService.createPayment(body);
   }
 
+  @Post('payments/charge')
+  async chargeBill(
+    @Body()
+    body: {
+      billId: string;
+      userId: string;
+      paymentMethod: string;
+    },
+  ) {
+    return this.appService.chargeBill(body.billId, body.userId, body.paymentMethod);
+  }
+
+  @Post('payments/callback')
+  async midtransCallback(@Body() notification: any) {
+    return this.appService.handleMidtransCallback(notification);
+  }
+
   @Patch('payments/:id/verify')
   async verifyPayment(
     @Param('id') id: string,

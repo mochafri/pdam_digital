@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { Role, BillStatus, PaymentStatus } from '@prisma/client';
+import * as midtransClient from 'midtrans-client';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -10,7 +11,15 @@ const MONTHS = [
 
 @Injectable()
 export class AppService {
-  constructor(private readonly prisma: PrismaService) {}
+  private snap: any;
+
+  constructor(private readonly prisma: PrismaService) {
+    this.snap = new midtransClient.Snap({
+      isProduction: process.env.MIDTRANS_IS_PRODUCTION === 'true',
+      serverKey: process.env.MIDTRANS_SERVER_KEY || 'SB-Mid-server-BWDW7fFOlGzXwcAeMYYLSAtO',
+      clientKey: process.env.MIDTRANS_CLIENT_KEY || 'SB-Mid-client-_apIHAKTdVMvcov_'
+    });
+  }
 
   getHello(): string {
     return 'PDAM Digital API Server';
@@ -274,6 +283,175 @@ export class AppService {
     });
 
     return payment;
+  }
+
+  async chargeBill(billId: string, userId: string, paymentMethodId: string) {
+    const bill = await this.prisma.bill.findUnique({
+      where: { id: billId },
+      include: { user: true },
+    });
+    if (!bill) {
+      throw new NotFoundException('Tagihan tidak ditemukan.');
+    }
+
+    const orderId = `BILL-${bill.id.substring(0, 8)}-${Date.now()}`;
+
+    // Map method ID to Midtrans enabled_payments code
+    let enabledPayments: string[] = [];
+    let friendlyMethodName = 'Midtrans Snap';
+
+    if (paymentMethodId === 'bca-va') {
+      enabledPayments = ['bca_va'];
+      friendlyMethodName = 'BCA Virtual Account (Midtrans)';
+    } else if (paymentMethodId === 'mandiri-va') {
+      enabledPayments = ['echannel', 'mandiri_va'];
+      friendlyMethodName = 'Mandiri Virtual Account (Midtrans)';
+    } else if (paymentMethodId === 'bni-va') {
+      enabledPayments = ['bni_va'];
+      friendlyMethodName = 'BNI Virtual Account (Midtrans)';
+    } else if (paymentMethodId === 'qris') {
+      enabledPayments = ['qris'];
+      friendlyMethodName = 'QRIS (Midtrans)';
+    } else if (paymentMethodId === 'gopay') {
+      enabledPayments = ['gopay'];
+      friendlyMethodName = 'GoPay (Midtrans)';
+    } else {
+      enabledPayments = ['bca_va', 'echannel', 'bni_va', 'qris', 'gopay'];
+    }
+
+    const parameter = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: bill.total,
+      },
+      credit_card: {
+        secure: true,
+      },
+      customer_details: {
+        first_name: bill.user.name,
+        email: bill.user.email,
+        phone: bill.user.phone || '',
+      },
+      item_details: [
+        {
+          id: bill.id,
+          price: bill.total,
+          quantity: 1,
+          name: `Tagihan Air PDAM - ${bill.monthString} ${bill.yearString}`,
+        },
+      ],
+      enabled_payments: enabledPayments,
+    };
+
+    try {
+      const transaction = await this.snap.createTransaction(parameter);
+
+      // Create a pending payment record in our DB
+      await this.prisma.payment.create({
+        data: {
+          id: orderId,
+          billId: bill.id,
+          userId: userId,
+          amount: bill.total,
+          paymentMethod: friendlyMethodName,
+          status: PaymentStatus.PENDING,
+        },
+      });
+
+      await this.prisma.bill.update({
+        where: { id: bill.id },
+        data: { status: BillStatus.MENUNGGU_VERIFIKASI },
+      });
+
+      return {
+        token: transaction.token,
+        redirectUrl: transaction.redirect_url,
+        paymentId: orderId,
+      };
+    } catch (err: any) {
+      throw new BadRequestException(err.message || 'Gagal membuat transaksi Midtrans.');
+    }
+  }
+
+  async handleMidtransCallback(notification: any) {
+    try {
+      const statusResponse = await this.snap.transaction.notification(notification);
+      const orderId = statusResponse.order_id;
+      const transactionStatus = statusResponse.transaction_status;
+      const fraudStatus = statusResponse.fraud_status;
+
+      const payment = await this.prisma.payment.findUnique({
+        where: { id: orderId },
+      });
+
+      if (!payment) {
+        return { status: 'ignored' };
+      }
+
+      if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
+        if (fraudStatus === 'challenge') {
+          await this.prisma.payment.update({
+            where: { id: orderId },
+            data: { status: PaymentStatus.PENDING },
+          });
+        } else {
+          // PAYMENT SUCCESS!
+          await this.prisma.$transaction([
+            this.prisma.payment.update({
+              where: { id: orderId },
+              data: {
+                status: PaymentStatus.SUCCESS,
+                paidAt: new Date(),
+              },
+            }),
+            this.prisma.bill.update({
+              where: { id: payment.billId },
+              data: { status: BillStatus.LUNAS },
+            }),
+          ]);
+
+          // Update user status to Aktif if all bills are paid
+          const remainingUnpaid = await this.prisma.bill.count({
+            where: {
+              userId: payment.userId,
+              status: BillStatus.BELUM_BAYAR,
+            },
+          });
+          if (remainingUnpaid === 0) {
+            await this.prisma.user.update({
+              where: { id: payment.userId },
+              data: { status: 'Aktif' },
+            });
+          }
+        }
+      } else if (
+        transactionStatus === 'cancel' ||
+        transactionStatus === 'deny' ||
+        transactionStatus === 'expire'
+      ) {
+        // PAYMENT FAILED or EXPIRED
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: orderId },
+            data: { status: PaymentStatus.FAILED },
+          }),
+          this.prisma.bill.update({
+            where: { id: payment.billId },
+            data: { status: BillStatus.BELUM_BAYAR },
+          }),
+        ]);
+      } else if (transactionStatus === 'pending') {
+        await this.prisma.payment.update({
+          where: { id: orderId },
+          data: { status: PaymentStatus.PENDING },
+        });
+      }
+
+      return { status: 'ok' };
+    } catch (err: any) {
+      console.error('Midtrans Callback Error:', err);
+      throw new BadRequestException('Gagal memproses callback Midtrans.');
+    }
   }
 
   async verifyPayment(id: string, approve: boolean) {

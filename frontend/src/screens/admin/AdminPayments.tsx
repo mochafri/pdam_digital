@@ -153,11 +153,11 @@ export const AdminPayments: FC<AdminPaymentsProps> = ({ navigate }) => {
                     <td className="p-4 text-on-surface-variant font-semibold">
                       {p.paymentMethod}
                     </td>
-                    <td className="p-4 pr-6">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${getStatusBadgeClass(p.status)}`}>
-                        {getStatusLabel(p.status)}
-                      </span>
-                    </td>
+                     <td className="p-4 pr-6">
+                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${getStatusBadgeClass(p.status)}`}>
+                         {getStatusLabel(p.status)}
+                       </span>
+                     </td>
                   </tr>
                 ))}
                 {filteredPayments.length === 0 && (
