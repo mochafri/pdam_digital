@@ -520,12 +520,77 @@ export class AppService {
       where: { status: BillStatus.BELUM_BAYAR },
     });
 
+    // Calculate dynamic stats
+    const totalBills = await this.prisma.bill.count();
+    const lunasBills = await this.prisma.bill.count({
+      where: { status: BillStatus.LUNAS },
+    });
+    const paymentRate = totalBills > 0 ? Math.round((lunasBills / totalBills) * 100) : 100;
+
+    const totalPayments = await this.prisma.payment.count();
+    const successPayments = await this.prisma.payment.count({
+      where: { status: PaymentStatus.SUCCESS },
+    });
+    const complaintResolution = totalPayments > 0 ? Math.round((successPayments / totalPayments) * 100) : 100;
+
+    // Get usage trends grouped by month and year in JS
+    const allBills = await this.prisma.bill.findMany({
+      select: {
+        monthString: true,
+        yearString: true,
+        usage: true,
+      },
+    });
+
+    const MONTHS_ORDER = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const getMonthValue = (m: string, y: string) => {
+      const idx = MONTHS_ORDER.indexOf(m);
+      const yr = parseInt(y, 10) || 2026;
+      return yr * 12 + (idx !== -1 ? idx : 0);
+    };
+
+    const groupedUsage: Record<string, number> = {};
+    allBills.forEach((b) => {
+      const key = `${b.monthString} ${b.yearString}`;
+      groupedUsage[key] = (groupedUsage[key] || 0) + b.usage;
+    });
+
+    const trends = Object.entries(groupedUsage).map(([key, usage]) => {
+      const [m, y] = key.split(' ');
+      return {
+        label: `${m.substring(0, 3)} '${y.substring(2)}`,
+        usage,
+        monthVal: getMonthValue(m, y),
+      };
+    });
+
+    // Sort chronologically
+    trends.sort((a, b) => a.monthVal - b.monthVal);
+
+    // Filter to last 6 trends
+    const finalTrends = trends.slice(-6).map((t) => ({
+      label: t.label,
+      usage: t.usage,
+    }));
+
     return {
       totalCustomers,
       activeCustomers,
       tunggakanCustomers,
       pendingPaymentsCount,
       totalBillsUnpaid,
+      paymentRate,
+      complaintResolution,
+      trends: finalTrends.length > 0 ? finalTrends : [
+        { label: "Mei '24", usage: 120 },
+        { label: "Jun '24", usage: 150 },
+        { label: "Jul '24", usage: 180 },
+        { label: "Agu '24", usage: 220 },
+        { label: "Sep '24", usage: 250 },
+      ],
     };
   }
 }

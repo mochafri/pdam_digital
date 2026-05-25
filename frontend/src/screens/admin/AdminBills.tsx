@@ -1,12 +1,14 @@
 import { FC, useEffect, useState } from 'react';
 import { Icons } from '../../components/Icons';
 import { Screen, Bill } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 interface AdminBillsProps {
   navigate: (screen: Screen) => void;
 }
 
 export const AdminBills: FC<AdminBillsProps> = ({ navigate }) => {
+  const routerNavigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -195,18 +197,32 @@ export const AdminBills: FC<AdminBillsProps> = ({ navigate }) => {
                         </span>
                       </td>
                       <td className="p-4 pr-6 text-center">
-                        {bill.status === 'MENUNGGU_VERIFIKASI' ? (
+                        <div className="flex items-center justify-center gap-2">
+                          {bill.status === 'MENUNGGU_VERIFIKASI' && (
+                            <button 
+                              onClick={() => navigate('admin-payments')}
+                              className="bg-primary text-on-primary hover:bg-primary-fixed-variant px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                            >
+                              Verifikasi
+                            </button>
+                          )}
                           <button 
-                            onClick={() => navigate('admin-payments')}
-                            className="bg-primary text-on-primary hover:bg-primary-fixed-variant px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                            onClick={() => {
+                              routerNavigate('/admin/meter', { 
+                                state: { 
+                                  selectedCustomerId: bill.userId,
+                                  monthString: bill.monthString,
+                                  yearString: bill.yearString
+                                } 
+                              });
+                            }}
+                            title="Edit Catatan Meteran"
+                            className="text-on-surface-variant hover:text-primary hover:bg-surface-container p-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
                           >
-                            Verifikasi
+                            <Icons.Edit size={16} />
+                            <span>Edit</span>
                           </button>
-                        ) : (
-                          <button className="text-on-surface-variant hover:text-primary hover:bg-surface-container p-2 rounded-lg transition-colors cursor-pointer">
-                            <Icons.MoreVertical size={18} />
-                          </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}

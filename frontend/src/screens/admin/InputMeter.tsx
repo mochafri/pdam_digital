@@ -32,6 +32,8 @@ interface InputMeterProps {
 export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
   const location = useLocation();
   const preselectedId = location.state?.selectedCustomerId;
+  const preselectedMonth = location.state?.monthString;
+  const preselectedYear = location.state?.yearString;
 
   const [customers, setCustomers] = useState<User[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -132,15 +134,20 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
         setCustomerBills(bills);
         
         if (bills.length > 0) {
-          // find latest bill chronologically
-          const sortedBills = [...bills].sort((a, b) => {
-            return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
-          });
-          const latestBill = sortedBills[sortedBills.length - 1];
-          const nextMonthVal = getMonthValue(latestBill.monthString, latestBill.yearString) + 1;
-          const nextPeriod = fromMonthValue(nextMonthVal);
-          setSelectedMonth(nextPeriod.monthString);
-          setSelectedYear(nextPeriod.yearString);
+          if (preselectedMonth && preselectedYear) {
+            setSelectedMonth(preselectedMonth);
+            setSelectedYear(preselectedYear);
+          } else {
+            // find latest bill chronologically
+            const sortedBills = [...bills].sort((a, b) => {
+              return getMonthValue(a.monthString, a.yearString) - getMonthValue(b.monthString, b.yearString);
+            });
+            const latestBill = sortedBills[sortedBills.length - 1];
+            const nextMonthVal = getMonthValue(latestBill.monthString, latestBill.yearString) + 1;
+            const nextPeriod = fromMonthValue(nextMonthVal);
+            setSelectedMonth(nextPeriod.monthString);
+            setSelectedYear(nextPeriod.yearString);
+          }
         } else {
           // default to current month and year
           const now = new Date();
@@ -154,7 +161,7 @@ export const InputMeter: FC<InputMeterProps> = ({ navigate }) => {
     };
 
     fetchCustomerBills();
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, preselectedMonth, preselectedYear]);
 
   // Synchronize standAwal and standAkhir when period selection or bills change
   useEffect(() => {

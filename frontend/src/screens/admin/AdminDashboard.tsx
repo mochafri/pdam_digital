@@ -12,6 +12,9 @@ interface Stats {
   tunggakanCustomers: number;
   pendingPaymentsCount: number;
   totalBillsUnpaid: number;
+  paymentRate: number;
+  complaintResolution: number;
+  trends: Array<{ label: string; usage: number }>;
 }
 
 export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
@@ -175,37 +178,45 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
             <div className="lg:col-span-8 bg-surface rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-on-surface">Tren Distribusi Air</h2>
-                <span className="text-xs text-on-surface-variant font-medium bg-surface-container px-2.5 py-1 rounded-full">Distribusi harian (m³)</span>
+                <span className="text-xs text-on-surface-variant font-medium bg-surface-container px-2.5 py-1 rounded-full">Distribusi per Periode (m³)</span>
               </div>
               
               <div className="flex-1 flex items-end gap-2 mt-4 pt-4 border-t border-surface-container-high relative min-h-[240px]">
                 {/* Y-axis labels */}
-                <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-on-surface-variant text-xs font-medium py-2">
-                  <span>500 m³</span>
-                  <span>375 m³</span>
-                  <span>250 m³</span>
-                  <span>125 m³</span>
-                  <span>0</span>
-                </div>
-                <div className="flex-1 pl-12 flex items-end justify-between h-full gap-4">
-                  {[
-                    { label: 'Sen', height: '40%', color: 'bg-primary-fixed hover:bg-primary' },
-                    { label: 'Sel', height: '65%', color: 'bg-primary-fixed hover:bg-primary' },
-                    { label: 'Rab', height: '45%', color: 'bg-primary-fixed hover:bg-primary' },
-                    { label: 'Kam', height: '85%', color: 'bg-primary hover:bg-primary-fixed-variant' },
-                    { label: 'Jum', height: '55%', color: 'bg-primary-fixed hover:bg-primary' },
-                    { label: 'Sab', height: '30%', color: 'bg-surface-container-high hover:bg-primary-fixed' },
-                    { label: 'Min', height: '25%', color: 'bg-surface-container-high hover:bg-primary-fixed' },
-                  ].map((bar, i) => (
-                    <div key={i} className={`w-full rounded-t-sm relative group cursor-pointer transition-all duration-500 ease-out ${bar.color}`} style={{ height: bar.height }}>
-                      <div className={`absolute -bottom-7 w-full text-center text-xs font-semibold ${bar.label === 'Kam' ? 'text-primary' : 'text-on-surface-variant'}`}>{bar.label}</div>
-                      {/* Tooltip on hover */}
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-md z-10">
-                        {parseInt(bar.height) * 5} m³
+                {(() => {
+                  const maxUsage = stats?.trends ? Math.max(...stats.trends.map(t => t.usage), 1) : 100;
+                  return (
+                    <>
+                      <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-on-surface-variant text-xs font-semibold py-2">
+                        <span>{Math.round(maxUsage)} m³</span>
+                        <span>{Math.round(maxUsage * 0.75)} m³</span>
+                        <span>{Math.round(maxUsage * 0.5)} m³</span>
+                        <span>{Math.round(maxUsage * 0.25)} m³</span>
+                        <span>0</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                      <div className="flex-1 pl-12 flex items-end justify-between h-full gap-4">
+                        {(stats?.trends || []).map((bar, i) => {
+                          const heightPercent = `${Math.round((bar.usage / maxUsage) * 100)}%`;
+                          return (
+                            <div 
+                              key={i} 
+                              className="w-full rounded-t-md relative group cursor-pointer transition-all duration-500 ease-out bg-primary hover:bg-primary-fixed-variant" 
+                              style={{ height: heightPercent || '10%' }}
+                            >
+                              <div className="absolute -bottom-7 w-full text-center text-xs font-bold text-on-surface-variant">
+                                {bar.label}
+                              </div>
+                              {/* Tooltip on hover */}
+                              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none drop-shadow-md z-10 whitespace-nowrap font-bold">
+                                {bar.usage.toLocaleString('id-ID')} m³
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -215,20 +226,20 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between text-sm font-bold mb-2">
-                    <span className="text-on-surface">Kapasitas Distribusi</span>
-                    <span className="text-primary">82%</span>
+                    <span className="text-on-surface">Tingkat Pelunasan Tagihan</span>
+                    <span className="text-primary">{stats?.paymentRate || 100}%</span>
                   </div>
                   <div className="w-full bg-surface-container h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full w-[82%]"></div>
+                    <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${stats?.paymentRate || 100}%` }}></div>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm font-bold mb-2">
-                    <span className="text-on-surface">Penyelesaian Keluhan</span>
-                    <span className="text-primary">94%</span>
+                    <span className="text-on-surface">Rasio Transaksi Sukses</span>
+                    <span className="text-primary">{stats?.complaintResolution || 100}%</span>
                   </div>
                   <div className="w-full bg-surface-container h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full w-[94%]"></div>
+                    <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${stats?.complaintResolution || 100}%` }}></div>
                   </div>
                 </div>
                 
@@ -239,7 +250,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-on-surface">Kualitas Air Normal</p>
-                      <p className="text-xs font-medium text-on-surface-variant mt-0.5">Diperbarui 10 menit yang lalu</p>
+                      <p className="text-xs font-medium text-on-surface-variant mt-0.5">Diperbarui beberapa menit yang lalu</p>
                     </div>
                   </div>
                 </div>
