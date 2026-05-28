@@ -21,6 +21,65 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
   const [snapToken, setSnapToken] = useState<string | null>(null);
   const [showEmbedded, setShowEmbedded] = useState(false);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+
+  const handleImgError = (id: string) => {
+    setImgErrors(prev => ({ ...prev, [id]: true }));
+  };
+
+  const getFallbackBadge = (id: string, name: string) => {
+    let label = name
+      .replace(' Virtual Account', '')
+      .replace(' Direct', '')
+      .replace(' (GoPay, ShopeePay, Dana)', '');
+    if (label === 'Kartu Kredit / Debit') label = 'Card';
+    
+    let bgClass = 'bg-primary/10 text-primary border-primary/20';
+    
+    if (id.includes('bca')) {
+      bgClass = 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    } else if (id.includes('mandiri')) {
+      bgClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+    } else if (id.includes('bni')) {
+      bgClass = 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+    } else if (id.includes('bri')) {
+      bgClass = 'bg-sky-500/10 text-sky-600 border-sky-500/20';
+    } else if (id.includes('permata')) {
+      bgClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+    } else if (id === 'qris') {
+      bgClass = 'bg-pink-500/10 text-pink-600 border-pink-500/20';
+    } else if (id === 'gopay') {
+      bgClass = 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    } else if (id === 'shopeepay') {
+      bgClass = 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+    } else if (id === 'alfamart') {
+      bgClass = 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+    } else if (id === 'indomaret') {
+      bgClass = 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    } else if (id === 'credit-card') {
+      bgClass = 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20';
+    }
+
+    return (
+      <div className={`px-2.5 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider border ${bgClass} shadow-sm shrink-0 whitespace-nowrap`}>
+        {label}
+      </div>
+    );
+  };
+
+  const getInitialCategory = (method: string) => {
+    if (['bca-va', 'mandiri-va', 'bni-va', 'bri-va', 'permata-va'].includes(method)) return 'va';
+    if (['qris', 'gopay', 'shopeepay'].includes(method)) return 'wallet';
+    if (['alfamart', 'indomaret'].includes(method)) return 'store';
+    if (method === 'credit-card') return 'card';
+    return 'va';
+  };
+
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(getInitialCategory(selectedMethod));
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategory(expandedCategory === cat ? null : cat);
+  };
 
   useEffect(() => {
     if (showEmbedded && snapToken) {
@@ -82,8 +141,8 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
   }, [showEmbedded, snapToken, currentPaymentId, navigate]);
 
   useEffect(() => {
-    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'SB-Mid-client-_apIHAKTdVMvcov_';
-    const snapUrl = import.meta.env.VITE_MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js';
+    const clientKey = (import.meta as any).env.VITE_MIDTRANS_CLIENT_KEY || 'SB-Mid-client-_apIHAKTdVMvcov_';
+    const snapUrl = (import.meta as any).env.VITE_MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js';
     
     let script = document.getElementById('midtrans-snap-script') as HTMLScriptElement;
     if (!script) {
@@ -205,77 +264,253 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
                 <h4 className="text-xl font-bold text-on-surface">Pilih Metode Pembayaran</h4>
               </div>
               
-              <div className="p-8 space-y-8 bg-surface-container-lowest flex-1">
+              <div className="p-6 space-y-4 bg-surface-container-lowest flex-1 overflow-y-auto">
                 
-                {/* Virtual Account Group */}
-                <div>
-                  <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Icons.Building size={14} /> Transfer Virtual Account
-                  </p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      { id: 'bca-va', name: 'BCA Virtual Account', icon: 'BCA' },
-                      { id: 'mandiri-va', name: 'Mandiri Virtual Account', icon: 'Mandiri' },
-                      { id: 'bni-va', name: 'BNI Virtual Account', icon: 'BNI' },
-                    ].map((method) => (
-                      <label 
-                        key={method.id} 
-                        className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all duration-200 group
-                          ${selectedMethod === method.id 
-                            ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
-                            : 'border-outline-variant/50 hover:bg-surface-container-low hover:border-primary/50'}`}
-                        onClick={() => setSelectedMethod(method.id)}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors
-                            ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
-                            {selectedMethod === method.id && <div className="w-2.5 h-2.5 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
-                          </div>
-                          <span className={`text-sm font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
-                            {method.name}
-                          </span>
-                        </div>
-                        <div className="h-6 px-2 py-0.5 rounded bg-surface border border-outline-variant/30 text-[10px] font-bold flex items-center text-on-surface-variant shadow-sm uppercase tracking-wider">
-                          {method.icon}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                {/* Virtual Account Group Accordion Card */}
+                <div className="border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm bg-surface-container-lowest transition-all hover:border-primary/20">
+                  <button 
+                    type="button"
+                    onClick={() => toggleCategory('va')}
+                    className={`w-full flex items-center justify-between p-4 bg-surface-container-low/40 hover:bg-surface-container-low transition-all font-bold text-sm text-on-surface select-none outline-none
+                      ${expandedCategory === 'va' ? 'border-b border-outline-variant/40 bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.Building size={16} className={`transition-colors ${expandedCategory === 'va' ? 'text-primary' : 'text-on-surface-variant'}`} />
+                      <span className={`uppercase tracking-wider text-[11px] ${expandedCategory === 'va' ? 'text-primary' : 'text-on-surface'}`}>Transfer Virtual Account</span>
+                    </div>
+                    <Icons.ChevronDown 
+                      size={18} 
+                      className={`text-on-surface-variant transition-transform duration-300 ${expandedCategory === 'va' ? 'rotate-180 text-primary' : ''}`}
+                    />
+                  </button>
+                  
+                  {expandedCategory === 'va' && (
+                    <div className="p-4 space-y-3 bg-surface-container-lowest animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { id: 'bca-va', name: 'BCA Virtual Account', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg' },
+                          { id: 'mandiri-va', name: 'Mandiri Virtual Account', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg' },
+                          { id: 'bni-va', name: 'BNI Virtual Account', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg' },
+                          { id: 'bri-va', name: 'BRI Virtual Account', logo: 'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg' },
+                          { id: 'permata-va', name: 'Permata Virtual Account', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Permata_Bank_%282024%29.svg' },
+                        ].map((method) => (
+                          <label 
+                            key={method.id} 
+                            className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all duration-200 group
+                              ${selectedMethod === method.id 
+                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
+                                : 'border-outline-variant/40 hover:bg-surface-container-low/50 hover:border-primary/40'}`}
+                            onClick={() => setSelectedMethod(method.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
+                                ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
+                                {selectedMethod === method.id && <div className="w-2 h-2 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
+                              </div>
+                              <span className={`text-xs font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
+                                {method.name}
+                              </span>
+                            </div>
+                            <div className="h-6 min-w-[64px] flex items-center justify-end">
+                              {imgErrors[method.id] ? (
+                                getFallbackBadge(method.id, method.name)
+                              ) : (
+                                <img 
+                                  src={method.logo} 
+                                  alt={method.name} 
+                                  onError={() => handleImgError(method.id)}
+                                  className="h-5 w-auto max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* E-Wallet Group */}
-                <div>
-                  <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Icons.CreditCard size={14} /> E-Wallet & QRIS
-                  </p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      { id: 'qris', name: 'QRIS (GoPay, ShopeePay, Dana)', icon: 'QRIS' },
-                      { id: 'gopay', name: 'GoPay Direct', icon: 'GOPAY' },
-                    ].map((method) => (
-                      <label 
-                        key={method.id} 
-                        className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all duration-200 group
-                          ${selectedMethod === method.id 
-                            ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
-                            : 'border-outline-variant/50 hover:bg-surface-container-low hover:border-primary/50'}`}
-                        onClick={() => setSelectedMethod(method.id)}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors
-                            ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
-                            {selectedMethod === method.id && <div className="w-2.5 h-2.5 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
-                          </div>
-                          <span className={`text-sm font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
-                            {method.name}
-                          </span>
-                        </div>
-                        <div className="h-6 px-2 py-0.5 rounded bg-surface border border-outline-variant/30 text-[10px] font-bold flex items-center text-on-surface-variant shadow-sm uppercase tracking-wider bg-gradient-to-br from-white to-surface-container-low">
-                          {method.icon}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                {/* E-Wallet Group Accordion Card */}
+                <div className="border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm bg-surface-container-lowest transition-all hover:border-primary/20">
+                  <button 
+                    type="button"
+                    onClick={() => toggleCategory('wallet')}
+                    className={`w-full flex items-center justify-between p-4 bg-surface-container-low/40 hover:bg-surface-container-low transition-all font-bold text-sm text-on-surface select-none outline-none
+                      ${expandedCategory === 'wallet' ? 'border-b border-outline-variant/40 bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.CreditCard size={16} className={`transition-colors ${expandedCategory === 'wallet' ? 'text-primary' : 'text-on-surface-variant'}`} />
+                      <span className={`uppercase tracking-wider text-[11px] ${expandedCategory === 'wallet' ? 'text-primary' : 'text-on-surface'}`}>E-Wallet & QRIS</span>
+                    </div>
+                    <Icons.ChevronDown 
+                      size={18} 
+                      className={`text-on-surface-variant transition-transform duration-300 ${expandedCategory === 'wallet' ? 'rotate-180 text-primary' : ''}`}
+                    />
+                  </button>
+                  
+                  {expandedCategory === 'wallet' && (
+                    <div className="p-4 space-y-3 bg-surface-container-lowest animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { id: 'qris', name: 'QRIS (GoPay, ShopeePay, Dana)', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg' },
+                          { id: 'gopay', name: 'GoPay Direct', logo: 'https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg' },
+                          { id: 'shopeepay', name: 'ShopeePay', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg' },
+                        ].map((method) => (
+                          <label 
+                            key={method.id} 
+                            className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all duration-200 group
+                              ${selectedMethod === method.id 
+                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
+                                : 'border-outline-variant/40 hover:bg-surface-container-low/50 hover:border-primary/40'}`}
+                            onClick={() => setSelectedMethod(method.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
+                                ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
+                                {selectedMethod === method.id && <div className="w-2 h-2 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
+                              </div>
+                              <span className={`text-xs font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
+                                {method.name}
+                              </span>
+                            </div>
+                            <div className="h-6 min-w-[64px] flex items-center justify-end">
+                              {imgErrors[method.id] ? (
+                                getFallbackBadge(method.id, method.name)
+                              ) : (
+                                <img 
+                                  src={method.logo} 
+                                  alt={method.name} 
+                                  onError={() => handleImgError(method.id)}
+                                  className="h-5 w-auto max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Convenience Store Group Accordion Card */}
+                <div className="border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm bg-surface-container-lowest transition-all hover:border-primary/20">
+                  <button 
+                    type="button"
+                    onClick={() => toggleCategory('store')}
+                    className={`w-full flex items-center justify-between p-4 bg-surface-container-low/40 hover:bg-surface-container-low transition-all font-bold text-sm text-on-surface select-none outline-none
+                      ${expandedCategory === 'store' ? 'border-b border-outline-variant/40 bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.Building size={16} className={`transition-colors ${expandedCategory === 'store' ? 'text-primary' : 'text-on-surface-variant'}`} />
+                      <span className={`uppercase tracking-wider text-[11px] ${expandedCategory === 'store' ? 'text-primary' : 'text-on-surface'}`}>Gerai Ritel (Over the Counter)</span>
+                    </div>
+                    <Icons.ChevronDown 
+                      size={18} 
+                      className={`text-on-surface-variant transition-transform duration-300 ${expandedCategory === 'store' ? 'rotate-180 text-primary' : ''}`}
+                    />
+                  </button>
+                  
+                  {expandedCategory === 'store' && (
+                    <div className="p-4 space-y-3 bg-surface-container-lowest animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { id: 'alfamart', name: 'Alfamart', logo: 'https://upload.wikimedia.org/wikipedia/commons/8/86/Alfamart_logo.svg' },
+                          { id: 'indomaret', name: 'Indomaret', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Indomaret.svg' },
+                        ].map((method) => (
+                          <label 
+                            key={method.id} 
+                            className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all duration-200 group
+                              ${selectedMethod === method.id 
+                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
+                                : 'border-outline-variant/40 hover:bg-surface-container-low/50 hover:border-primary/40'}`}
+                            onClick={() => setSelectedMethod(method.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
+                                ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
+                                {selectedMethod === method.id && <div className="w-2 h-2 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
+                              </div>
+                              <span className={`text-xs font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
+                                {method.name}
+                              </span>
+                            </div>
+                            <div className="h-6 min-w-[64px] flex items-center justify-end">
+                              {imgErrors[method.id] ? (
+                                getFallbackBadge(method.id, method.name)
+                              ) : (
+                                <img 
+                                  src={method.logo} 
+                                  alt={method.name} 
+                                  onError={() => handleImgError(method.id)}
+                                  className="h-5 w-auto max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Credit Card Group Accordion Card */}
+                <div className="border border-outline-variant/40 rounded-xl overflow-hidden shadow-sm bg-surface-container-lowest transition-all hover:border-primary/20">
+                  <button 
+                    type="button"
+                    onClick={() => toggleCategory('card')}
+                    className={`w-full flex items-center justify-between p-4 bg-surface-container-low/40 hover:bg-surface-container-low transition-all font-bold text-sm text-on-surface select-none outline-none
+                      ${expandedCategory === 'card' ? 'border-b border-outline-variant/40 bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icons.CreditCard size={16} className={`transition-colors ${expandedCategory === 'card' ? 'text-primary' : 'text-on-surface-variant'}`} />
+                      <span className={`uppercase tracking-wider text-[11px] ${expandedCategory === 'card' ? 'text-primary' : 'text-on-surface'}`}>Kartu Kredit & Debit</span>
+                    </div>
+                    <Icons.ChevronDown 
+                      size={18} 
+                      className={`text-on-surface-variant transition-transform duration-300 ${expandedCategory === 'card' ? 'rotate-180 text-primary' : ''}`}
+                    />
+                  </button>
+                  
+                  {expandedCategory === 'card' && (
+                    <div className="p-4 space-y-3 bg-surface-container-lowest animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { id: 'credit-card', name: 'Kartu Kredit / Debit', logo: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Visa_Inc._logo_%282005%E2%80%932014%29.svg' },
+                        ].map((method) => (
+                          <label 
+                            key={method.id} 
+                            className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all duration-200 group
+                              ${selectedMethod === method.id 
+                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
+                                : 'border-outline-variant/40 hover:bg-surface-container-low/50 hover:border-primary/40'}`}
+                            onClick={() => setSelectedMethod(method.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
+                                ${selectedMethod === method.id ? 'border-primary' : 'border-outline group-hover:border-primary/50'}`}>
+                                {selectedMethod === method.id && <div className="w-2 h-2 rounded-full bg-primary animate-in zoom-in duration-200"></div>}
+                              </div>
+                              <span className={`text-xs font-semibold transition-colors ${selectedMethod === method.id ? 'text-primary' : 'text-on-surface'}`}>
+                                {method.name}
+                              </span>
+                            </div>
+                            <div className="h-6 min-w-[64px] flex items-center justify-end">
+                              {imgErrors[method.id] ? (
+                                getFallbackBadge(method.id, method.name)
+                              ) : (
+                                <img 
+                                  src={method.logo} 
+                                  alt={method.name} 
+                                  onError={() => handleImgError(method.id)}
+                                  className="h-5 w-auto max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>

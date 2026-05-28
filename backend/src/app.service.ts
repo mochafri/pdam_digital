@@ -309,14 +309,35 @@ export class AppService {
     } else if (paymentMethodId === 'bni-va') {
       enabledPayments = ['bni_va'];
       friendlyMethodName = 'BNI Virtual Account (Midtrans)';
+    } else if (paymentMethodId === 'bri-va') {
+      enabledPayments = ['bri_va'];
+      friendlyMethodName = 'BRI Virtual Account (Midtrans)';
+    } else if (paymentMethodId === 'permata-va') {
+      enabledPayments = ['permata_va'];
+      friendlyMethodName = 'Permata Virtual Account (Midtrans)';
     } else if (paymentMethodId === 'qris') {
       enabledPayments = ['qris'];
       friendlyMethodName = 'QRIS (Midtrans)';
     } else if (paymentMethodId === 'gopay') {
       enabledPayments = ['gopay'];
       friendlyMethodName = 'GoPay (Midtrans)';
+    } else if (paymentMethodId === 'shopeepay') {
+      enabledPayments = ['shopeepay'];
+      friendlyMethodName = 'ShopeePay (Midtrans)';
+    } else if (paymentMethodId === 'alfamart') {
+      enabledPayments = ['alfamart'];
+      friendlyMethodName = 'Alfamart (Midtrans)';
+    } else if (paymentMethodId === 'indomaret') {
+      enabledPayments = ['indomaret'];
+      friendlyMethodName = 'Indomaret (Midtrans)';
+    } else if (paymentMethodId === 'credit-card') {
+      enabledPayments = ['credit_card'];
+      friendlyMethodName = 'Credit/Debit Card (Midtrans)';
     } else {
-      enabledPayments = ['bca_va', 'echannel', 'bni_va', 'qris', 'gopay'];
+      enabledPayments = [
+        'bca_va', 'echannel', 'bni_va', 'bri_va', 'permata_va', 
+        'qris', 'gopay', 'shopeepay', 'alfamart', 'indomaret', 'credit_card'
+      ];
     }
 
     const parameter = {
