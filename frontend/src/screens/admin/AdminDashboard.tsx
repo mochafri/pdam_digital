@@ -67,7 +67,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -98,9 +98,9 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
       ) : (
         <>
           {/* Bento Grid: Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {/* Card 1: Total Pelanggan */}
-            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-outline-variant transition-all hover:shadow-md hover:-translate-y-1 group">
+            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:-translate-y-1 group">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 bg-surface-container rounded-lg text-primary group-hover:bg-primary/10 transition-colors">
                   <Icons.Users size={24} />
@@ -116,7 +116,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
             </div>
 
             {/* Card 2: Tunggakan Pelanggan */}
-            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-outline-variant transition-all hover:shadow-md hover:-translate-y-1 group">
+            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:-translate-y-1 group">
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 bg-surface-container rounded-lg text-primary group-hover:bg-primary/10 transition-colors">
                   <Icons.AlertTriangle size={24} className="text-error" />
@@ -138,7 +138,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
             </div>
 
             {/* Card 3: Pembayaran Pending */}
-            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-outline-variant transition-all hover:shadow-md hover:-translate-y-1 group cursor-pointer" onClick={() => navigate('admin-payments')}>
+            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:-translate-y-1 group cursor-pointer" onClick={() => navigate('admin-payments')}>
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 bg-tertiary-container/30 rounded-lg text-tertiary group-hover:bg-tertiary-container/50 transition-colors">
                   <Icons.Clock size={24} />
@@ -156,7 +156,7 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
             </div>
 
             {/* Card 4: Tagihan Belum Bayar */}
-            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-outline-variant transition-all hover:shadow-md hover:-translate-y-1 group cursor-pointer" onClick={() => navigate('admin-bills')}>
+            <div className="bg-surface flex flex-col justify-between rounded-xl p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:-translate-y-1 group cursor-pointer" onClick={() => navigate('admin-bills')}>
               <div className="flex items-start justify-between mb-4">
                 <div className="p-3 bg-error-container/30 rounded-lg text-error group-hover:bg-error-container transition-colors">
                   <Icons.Receipt size={24} />
@@ -173,9 +173,9 @@ export const AdminDashboard: FC<AdminDashboardProps> = ({ navigate }) => {
           </div>
 
           {/* Main Workspace Area */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             {/* Chart Section */}
-            <div className="lg:col-span-8 bg-surface rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col">
+            <div className="lg:col-span-8 bg-surface rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-on-surface">Tren Distribusi Air</h2>
                 <span className="text-xs text-on-surface-variant font-medium bg-surface-container px-2.5 py-1 rounded-full">Distribusi per Periode (m³)</span>

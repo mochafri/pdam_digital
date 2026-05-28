@@ -46,21 +46,37 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
     : 0;
 
   const maxUsageVal = Math.max(...bills.map(x => x.usage || 10), 10);
-  const chartData = bills.length > 0
-    ? bills.slice(0, 6).reverse().map(b => ({
-        label: b.monthString.substring(0, 3).toUpperCase(),
-        height: `${Math.min(100, Math.max(15, (b.usage / maxUsageVal) * 100))}%`,
-        usage: b.usage,
-        active: b.id === activeBill?.id
-      }))
-    : [
-        { label: 'DES', height: '30%', usage: 0, active: false },
-        { label: 'JAN', height: '30%', usage: 0, active: false },
-        { label: 'FEB', height: '30%', usage: 0, active: false },
-        { label: 'MAR', height: '30%', usage: 0, active: false },
-        { label: 'APR', height: '30%', usage: 0, active: false },
-        { label: 'MEI', height: '30%', usage: 0, active: true },
+  const getChartBars = () => {
+    if (bills.length === 0) {
+      return [
+        { label: 'DES', height: '15%', usage: 0, active: false },
+        { label: 'JAN', height: '15%', usage: 0, active: false },
+        { label: 'FEB', height: '15%', usage: 0, active: false },
+        { label: 'MAR', height: '15%', usage: 0, active: false },
+        { label: 'APR', height: '15%', usage: 0, active: false },
+        { label: 'MEI', height: '15%', usage: 0, active: true },
       ];
+    }
+    const latest6 = [...bills].slice(0, 6).reverse();
+    const chartBars = latest6.map(b => ({
+      label: b.monthString.substring(0, 3).toUpperCase(),
+      height: `${Math.min(100, Math.max(15, (b.usage / maxUsageVal) * 100))}%`,
+      usage: b.usage,
+      active: b.id === activeBill?.id
+    }));
+    const dummyLabels = ['DES', 'JAN', 'FEB', 'MAR', 'APR', 'MEI'];
+    while (chartBars.length < 6) {
+      const idx = 6 - chartBars.length - 1;
+      chartBars.unshift({
+        label: dummyLabels[idx] || 'PREV',
+        height: '15%',
+        usage: 0,
+        active: false
+      });
+    }
+    return chartBars;
+  };
+  const chartData = getChartBars();
 
   const getStatusLabel = (status: string) => {
     if (status === 'LUNAS') return 'LUNAS';
@@ -84,7 +100,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
   };
 
   return (
-    <div className="pt-6 md:pt-12 px-2 md:px-8 pb-12 w-full max-w-7xl mx-auto animate-in fade-in duration-500">
+    <div className="pt-6 md:pt-12 px-4 md:px-8 pb-12 w-full max-w-7xl mx-auto animate-in fade-in duration-500">
       
       {/* Welcome Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -92,7 +108,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
           <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1">Halo, {user.name}</h1>
           <p className="text-on-surface-variant text-sm md:text-base">Selamat datang di dashboard pengelolaan air Anda.</p>
         </div>
-        <div className="bg-surface-container border border-outline-variant/50 px-4 py-2 rounded-lg flex items-center gap-3 self-start sm:self-end w-full sm:w-auto mt-2 sm:mt-0">
+        <div className="bg-surface-container border border-slate-200 px-4 py-2 rounded-lg flex items-center gap-3 self-start sm:self-end w-full sm:w-auto mt-2 sm:mt-0">
           <Icons.Droplet className="text-primary fill-primary/20 shrink-0" size={24} />
           <div>
             <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">No. Meter</p>
@@ -113,10 +129,10 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
         </div>
       ) : (
         /* Bento Grid Layout */
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 relative">
           
           {/* Main Bill Card */}
-          <div className="col-span-1 md:col-span-12 xl:col-span-4 bg-surface shadow-sm rounded-xl border border-outline-variant/50 overflow-hidden flex flex-col transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="col-span-1 md:col-span-12 xl:col-span-4 bg-surface shadow-sm rounded-xl border border-slate-200 overflow-hidden flex flex-col transition-all hover:-translate-y-1 hover:shadow-md">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <span className={`p-3 rounded-lg ${activeBill?.status === 'BELUM_BAYAR' ? 'bg-error-container/20 text-error' : activeBill?.status === 'MENUNGGU_VERIFIKASI' ? 'bg-tertiary-container/20 text-tertiary' : 'bg-green-100 text-green-600'}`}>
@@ -140,7 +156,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
                 </span>
               </div>
               
-              <div className="space-y-3 pt-4 border-t border-outline-variant/30">
+              <div className="space-y-3 pt-4 border-t border-slate-200">
                 <div className="flex justify-between text-sm">
                   <span className="text-on-surface-variant">Jatuh Tempo</span>
                   <span className="font-semibold">{activeBill ? activeBill.dueDate : '-'}</span>
@@ -182,7 +198,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
           </div>
           
           {/* Usage Chart Card */}
-          <div className="col-span-1 md:col-span-12 xl:col-span-8 bg-surface-container-lowest shadow-sm rounded-xl border border-outline-variant/50 p-6 flex flex-col transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="col-span-1 md:col-span-12 xl:col-span-8 bg-surface-container-lowest shadow-sm rounded-xl border border-slate-200 p-6 flex flex-col transition-all hover:-translate-y-1 hover:shadow-md">
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h3 className="text-lg font-bold text-on-surface">Grafik Pemakaian Air</h3>
@@ -215,7 +231,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
           </div>
           
           {/* Total Consumption Metric */}
-          <div className="col-span-1 md:col-span-4 bg-surface-container shadow-sm rounded-xl border border-outline-variant/30 p-6 transition-all hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
+          <div className="col-span-1 md:col-span-4 bg-surface-container shadow-sm rounded-xl border border-slate-200 p-6 transition-all hover:-translate-y-1 hover:shadow-md flex flex-col justify-between">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                 <Icons.Droplet size={24} className="fill-primary/20" />
@@ -241,7 +257,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
           </div>
           
           {/* Latest History */}
-          <div className="col-span-1 md:col-span-8 bg-surface-container-lowest shadow-sm rounded-xl border border-outline-variant/30 p-6 overflow-hidden transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="col-span-1 md:col-span-8 bg-surface-container-lowest shadow-sm rounded-xl border border-slate-200 p-6 overflow-hidden transition-all hover:-translate-y-1 hover:shadow-md">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold">Riwayat Terakhir</h3>
               <button 
@@ -255,7 +271,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
             <div className="overflow-x-auto custom-scrollbar pb-2">
               <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead>
-                  <tr className="text-[10px] font-bold text-on-surface-variant uppercase border-b border-outline-variant/50">
+                  <tr className="text-[10px] font-bold text-on-surface-variant uppercase border-b border-slate-200">
                     <th className="pb-3 px-2 font-semibold">Bulan</th>
                     <th className="pb-3 px-2 font-semibold">Stand Meter</th>
                     <th className="pb-3 px-2 font-semibold">Pemakaian</th>
@@ -267,7 +283,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
                   {bills.slice(0, 3).map((b) => (
                     <tr 
                       key={b.id} 
-                      className="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors group cursor-pointer" 
+                      className="border-b border-slate-200 hover:bg-surface-container-low transition-colors group cursor-pointer" 
                       onClick={() => {
                         if (b.status === 'BELUM_BAYAR') {
                           setSelectedBill(b);
@@ -309,7 +325,7 @@ export const Dashboard: FC<DashboardProps> = ({ user, navigate, setSelectedBill 
           </div>
           
           {/* Banner */}
-          <div className="col-span-1 md:col-span-12 rounded-xl bg-gradient-to-r from-primary to-tertiary p-8 text-on-primary flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden mt-2 shadow-sm">
+          <div className="col-span-1 md:col-span-12 rounded-xl bg-gradient-to-r from-[#00478d] to-[#004c73] p-8 text-on-primary flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden mt-2 shadow-sm">
             <div className="relative z-10 max-w-xl">
               <h2 className="text-2xl font-bold mb-2">Hemat Air, Hemat Biaya!</h2>
               <p className="text-on-primary/80 text-base leading-relaxed">

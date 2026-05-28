@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { Icons } from '../components/Icons';
-import { Screen, Bill, User } from '../types';
+import { Screen, Bill, User, API_BASE } from '../types';
 
 interface PaymentMethodProps {
   user: User;
@@ -96,7 +96,7 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
           onSuccess: async function (result: any) {
             if (currentPaymentId) {
               try {
-                await fetch(`http://localhost:5000/api/payments/${currentPaymentId}/verify`, {
+                await fetch(`${API_BASE}/api/payments/${currentPaymentId}/verify`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
           onError: async function (result: any) {
             if (currentPaymentId) {
               try {
-                await fetch(`http://localhost:5000/api/payments/${currentPaymentId}/verify`, {
+                await fetch(`${API_BASE}/api/payments/${currentPaymentId}/verify`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
   if (!selectedBill) return null;
 
   return (
-    <div className="pt-6 md:pt-12 px-2 md:px-8 pb-12 w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-right-8 duration-300">
+    <div className="pt-6 md:pt-12 px-4 md:px-8 pb-12 w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-right-8 duration-300">
       
       {/* Breadcrumb & Header */}
       <div className="mb-8">
@@ -179,10 +179,10 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
         <p className="text-on-surface-variant mt-2 text-base font-medium">Pilih metode pembayaran yang Anda inginkan untuk melanjutkan.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-start">
         
         {/* Bill Summary Sidebar */}
-        <div className="md:col-span-1 flex flex-col gap-4">
+        <div className="md:col-span-1 flex flex-col gap-4 md:gap-6">
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/40 p-6 relative overflow-hidden">
             <div className="flex items-center gap-2 mb-6">
               <Icons.FileText className="text-primary fill-primary/10" size={24} />
@@ -245,11 +245,50 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
                 </div>
               </div>
               
-              <div className="p-4 md:p-6 bg-surface flex flex-col items-center justify-center min-h-[650px] relative">
+              <div className="p-4 md:p-6 bg-surface flex flex-col items-center justify-start min-h-[650px] relative">
                 {!snapToken && (
-                  <div className="flex flex-col items-center gap-3 py-12">
-                    <Icons.Clock className="animate-spin text-primary" size={32} />
-                    <p className="text-sm font-semibold text-on-surface-variant">Memuat formulir pembayaran...</p>
+                  <div className="w-full flex flex-col gap-6 py-6 animate-pulse">
+                    {/* Header Skeleton */}
+                    <div className="flex justify-between items-center pb-4 border-b border-outline-variant/10">
+                      <div className="h-6 w-32 bg-surface-container-high rounded-md"></div>
+                      <div className="h-8 w-24 bg-surface-container-high rounded-md"></div>
+                    </div>
+                    {/* Amount Block Skeleton */}
+                    <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/20 flex flex-col gap-2">
+                      <div className="h-3 w-20 bg-surface-container-high rounded-md"></div>
+                      <div className="h-8 w-48 bg-surface-container-high rounded-md"></div>
+                    </div>
+                    {/* Input/Bank options Skeletons */}
+                    <div className="flex flex-col gap-4">
+                      <div className="h-4 w-36 bg-surface-container-high rounded-md"></div>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="h-16 w-full bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center justify-between px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-5 w-5 bg-surface-container-high rounded-full"></div>
+                            <div className="h-4 w-28 bg-surface-container-high rounded-md"></div>
+                          </div>
+                          <div className="h-5 w-12 bg-surface-container-high rounded-md"></div>
+                        </div>
+                        <div className="h-16 w-full bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center justify-between px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-5 w-5 bg-surface-container-high rounded-full"></div>
+                            <div className="h-4 w-32 bg-surface-container-high rounded-md"></div>
+                          </div>
+                          <div className="h-5 w-12 bg-surface-container-high rounded-md"></div>
+                        </div>
+                        <div className="h-16 w-full bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center justify-between px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-5 w-5 bg-surface-container-high rounded-full"></div>
+                            <div className="h-4 w-24 bg-surface-container-high rounded-md"></div>
+                          </div>
+                          <div className="h-5 w-12 bg-surface-container-high rounded-md"></div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Footer Skeleton */}
+                    <div className="mt-4 pt-4 border-t border-outline-variant/10 flex flex-col gap-2">
+                      <div className="h-12 w-full bg-surface-container-high rounded-xl"></div>
+                    </div>
                   </div>
                 )}
                 <div 
@@ -530,7 +569,7 @@ export const PaymentMethod: FC<PaymentMethodProps> = ({
 
                     setPaying(true);
                     try {
-                      const response = await fetch('http://localhost:5000/api/payments/charge', {
+                      const response = await fetch(`${API_BASE}/api/payments/charge`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',

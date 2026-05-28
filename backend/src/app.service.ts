@@ -296,6 +296,27 @@ export class AppService {
 
     const orderId = `BILL-${bill.id.substring(0, 8)}-${Date.now()}`;
 
+    // Check if there is already an active pending Midtrans payment for this bill within last 20 hours
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: {
+        billId: billId,
+        userId: userId,
+        status: PaymentStatus.PENDING,
+        paymentMethod: { contains: 'Midtrans' },
+        createdAt: {
+          gt: new Date(Date.now() - 20 * 60 * 60 * 1000),
+        },
+      },
+    });
+
+    if (existingPayment && existingPayment.proofOfImage) {
+      return {
+        token: existingPayment.proofOfImage,
+        redirectUrl: `https://app.sandbox.midtrans.com/snap/v2/vtweb/${existingPayment.proofOfImage}`,
+        paymentId: existingPayment.id,
+      };
+    }
+
     // Map method ID to Midtrans enabled_payments code
     let enabledPayments: string[] = [];
     let friendlyMethodName = 'Midtrans Snap';
@@ -367,7 +388,7 @@ export class AppService {
     try {
       const transaction = await this.snap.createTransaction(parameter);
 
-      // Create a pending payment record in our DB
+      // Create a pending payment record in our DB and store the token for reuse
       await this.prisma.payment.create({
         data: {
           id: orderId,
@@ -376,6 +397,7 @@ export class AppService {
           amount: bill.total,
           paymentMethod: friendlyMethodName,
           status: PaymentStatus.PENDING,
+          proofOfImage: transaction.token,
         },
       });
 
@@ -435,7 +457,9 @@ export class AppService {
           const remainingUnpaid = await this.prisma.bill.count({
             where: {
               userId: payment.userId,
-              status: BillStatus.BELUM_BAYAR,
+              status: {
+                not: BillStatus.LUNAS,
+              },
             },
           });
           if (remainingUnpaid === 0) {
@@ -504,7 +528,9 @@ export class AppService {
       const remainingUnpaid = await this.prisma.bill.count({
         where: {
           userId: payment.userId,
-          status: BillStatus.BELUM_BAYAR,
+          status: {
+            not: BillStatus.LUNAS,
+          },
         },
       });
       

@@ -53,3 +53,5 @@ export interface Payment {
   createdAt: string;
 }
 
+export const API_BASE = `http://${window.location.hostname}:5000`;
+
