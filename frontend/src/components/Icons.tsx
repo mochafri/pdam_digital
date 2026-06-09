@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Users, Gauge, CheckCircle, AlertTriangle, Filter,
   Edit, Trash2, MapPin, Hash, UserSearch, Calendar, 
-  Calculator, Save, Plus, MoreVertical, Menu
+  Calculator, Save, Plus, MoreVertical, Menu, RefreshCw
 } from 'lucide-react';
 import { FC } from 'react';
 
@@ -25,6 +25,6 @@ export const Icons = {
   ShieldCheck, ArrowLeft, ChevronLeft, ChevronRight,
   Users, Gauge, CheckCircle, AlertTriangle, Filter,
   Edit, Trash2, MapPin, Hash, UserSearch, Calendar,
-  Calculator, Save, Plus, MoreVertical, Menu
+  Calculator, Save, Plus, MoreVertical, Menu, RefreshCw
 };
 
