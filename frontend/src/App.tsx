@@ -221,8 +221,13 @@ function AdminLayout({ currentUser, setCurrentUser }: AdminLayoutProps) {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('pdam_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('pdam_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      localStorage.removeItem('pdam_user');
+      return null;
+    }
   });
 
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
