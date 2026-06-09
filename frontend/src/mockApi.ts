@@ -92,10 +92,7 @@ export function setupMockApi() {
       if (urlString.includes('/api/auth/login') && init?.method === 'POST') {
         const body = JSON.parse(init.body as string);
         const user = body.email.includes('admin') ? mockAdmin : mockUser;
-        return new Response(JSON.stringify({
-          token: 'mock-jwt-token-123',
-          user
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(user), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
 
       // 2. Bills
