@@ -7,9 +7,10 @@ interface TopBarProps {
   user: User;
   onMenuClick: () => void;
   onLogout?: () => void;
+  onSwitchRole?: () => void;
 }
 
-export const TopBar: FC<TopBarProps> = ({ user, onMenuClick, onLogout }) => {
+export const TopBar: FC<TopBarProps> = ({ user, onMenuClick, onLogout, onSwitchRole }) => {
   const navigate = useNavigate();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -378,6 +379,18 @@ export const TopBar: FC<TopBarProps> = ({ user, onMenuClick, onLogout }) => {
                     <span>Riwayat Tagihan</span>
                   </button>
                   <div className="h-[1px] bg-outline-variant/20 my-1"></div>
+                  {onSwitchRole && (
+                    <button 
+                      onClick={() => {
+                        onSwitchRole();
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-on-surface-variant hover:text-primary hover:bg-primary/5 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Icons.RefreshCw size={16} />
+                      <span>Ganti ke Admin</span>
+                    </button>
+                  )}
                   <button 
                     onClick={() => {
                       if (onLogout) onLogout();

@@ -71,6 +71,7 @@ interface CustomerLayoutProps {
   setSelectedBill: (bill: Bill | null) => void;
   selectedPaymentMethod: string;
   setSelectedPaymentMethod: (method: string) => void;
+  onSwitchRole: () => void;
 }
 
 function CustomerLayout({
@@ -79,7 +80,8 @@ function CustomerLayout({
   selectedBill,
   setSelectedBill,
   selectedPaymentMethod,
-  setSelectedPaymentMethod
+  setSelectedPaymentMethod,
+  onSwitchRole
 }: CustomerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -116,7 +118,7 @@ function CustomerLayout({
         />
       )}
       <Sidebar currentScreen={currentScreen} navigate={navigateToScreen} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
-      <TopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
+      <TopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} onSwitchRole={onSwitchRole} />
       <main className="lg:ml-[280px] pt-16 transition-all duration-300">
         <div className="p-4 md:p-8 overflow-x-hidden">
           <Routes>
@@ -162,9 +164,10 @@ function CustomerLayout({
 interface AdminLayoutProps {
   currentUser: User;
   setCurrentUser: (user: User | null) => void;
+  onSwitchRole: () => void;
 }
 
-function AdminLayout({ currentUser, setCurrentUser }: AdminLayoutProps) {
+function AdminLayout({ currentUser, setCurrentUser, onSwitchRole }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -202,7 +205,7 @@ function AdminLayout({ currentUser, setCurrentUser }: AdminLayoutProps) {
         />
       )}
       <AdminSidebar currentScreen={currentScreen} navigate={navigateToScreen} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
-      <AdminTopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
+      <AdminTopBar user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} onSwitchRole={onSwitchRole} />
       <main className="lg:ml-[280px] pt-16 transition-all duration-300">
         <div className="p-4 md:p-8 overflow-x-hidden">
           <Routes>
@@ -223,15 +226,23 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('pdam_user');
-      return saved ? JSON.parse(saved) : null;
+      return saved ? JSON.parse(saved) : MOCK_USER;
     } catch (e) {
       localStorage.removeItem('pdam_user');
-      return null;
+      return MOCK_USER;
     }
   });
 
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('bca-va');
+
+  const handleSwitchRole = () => {
+    if (!currentUser) return;
+    const isCurrentlyAdmin = currentUser.role === 'ADMIN';
+    const newUser = isCurrentlyAdmin ? MOCK_USER : MOCK_ADMIN;
+    setCurrentUser(newUser);
+    localStorage.setItem('pdam_user', JSON.stringify(newUser));
+  };
 
   return (
     <BrowserRouter>
@@ -264,6 +275,7 @@ export default function App() {
               setSelectedBill={setSelectedBill}
               selectedPaymentMethod={selectedPaymentMethod}
               setSelectedPaymentMethod={setSelectedPaymentMethod}
+              onSwitchRole={handleSwitchRole}
             />
           </ProtectedRoute>
         } />
@@ -274,6 +286,7 @@ export default function App() {
             <AdminLayout
               currentUser={currentUser!}
               setCurrentUser={setCurrentUser}
+              onSwitchRole={handleSwitchRole}
             />
           </ProtectedRoute>
         } />
